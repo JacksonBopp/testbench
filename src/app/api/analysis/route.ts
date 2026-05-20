@@ -1,0 +1,45 @@
+import { NextRequest } from 'next/server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { testRuns } from '@/db/schema'
+import { analyzeTestRun } from '@/lib/watsonx'
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const { runId } = body as { runId?: string }
+
+  if (!runId) {
+    return Response.json({ error: 'runId is required' }, { status: 400 })
+  }
+
+  const run = await db.query.testRuns.findFirst({
+    where: eq(testRuns.id, runId),
+    with: { steps: true },
+  })
+
+  if (!run) {
+    return Response.json({ error: 'Test run not found' }, { status: 404 })
+  }
+
+  if (run.status !== 'failed' && run.status !== 'error') {
+    return Response.json(
+      { error: 'Only failed or errored runs can be analyzed' },
+      { status: 400 },
+    )
+  }
+
+  try {
+    const analysis = await analyzeTestRun({
+      id: run.id,
+      status: run.status,
+      hardwareId: run.hardwareId,
+      startedAt: run.startedAt,
+      finishedAt: run.finishedAt ?? null,
+      steps: run.steps,
+    })
+    return Response.json({ analysis })
+  } catch (err) {
+    console.error('watsonx error:', err)
+    return Response.json({ error: 'Analysis failed — check watsonx credentials' }, { status: 502 })
+  }
+}

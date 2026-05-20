@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@ibm-cloud/watsonx-ai": "^1.7.12",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.6",
     "postgres": "^3.4.9",
