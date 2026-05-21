@@ -10,7 +10,8 @@ Hardware test automation platform — trigger test sequences on an MSP430FR2355 
 | Styling | Tailwind CSS v4 |
 | Database | PostgreSQL 16 (Drizzle ORM) |
 | Realtime | MQTT (eclipse-mosquitto) |
-| AI | IBM watsonx.ai — `ibm/granite-3-8b-instruct` |
+| AI — Analysis | IBM watsonx.ai — `ibm/granite-3-8b-instruct` |
+| AI — Chat | Google Gemini 2.0 Flash Lite (Edward assistant) |
 | Hardware | Raspberry Pi Zero 2 W (Python 3) + MSP430FR2355 (C) |
 
 ## Architecture
@@ -122,3 +123,22 @@ Open `firmware/main.c` in Code Composer Studio (or build with `msp430-elf-gcc`).
 | POST | `/api/alerts` | Create an alert |
 | PATCH | `/api/alerts/[id]` | Acknowledge an alert |
 | POST | `/api/analysis` | Run watsonx analysis on a failed run |
+| POST | `/api/chat` | Streaming chat with Edward (Gemini backend) |
+
+## Edward — AI Chat Assistant
+
+A floating chat panel (bottom-right corner of the dashboard) powered by **Google Gemini 2.0 Flash Lite**. Edward is a dry-witted hardware QA assistant with context awareness of the testbench platform — ask him about failing steps, unusual metrics, UART wiring, firmware behavior, or anything embedded-systems related.
+
+Edward was originally built as a desktop AI assistant for the IBM Bob hackathon and has been adapted here as a browser-based troubleshooting assistant.
+
+### Running Edward on IBM watsonx
+
+Edward's chat backend can be swapped to IBM watsonx (Granite) instead of Gemini by replacing the `/api/chat` route handler to use the existing `src/lib/watsonx.ts` client. The `analyzeTestRun()` function already demonstrates the pattern — a chat variant would use `textChat()` in streaming mode with the same `ibm/granite-3-8b-instruct` model. The Gemini backend is used by default to preserve the free watsonx token quota for post-run analysis reports.
+
+### Environment
+
+Add to `.env.local`:
+
+```
+GEMINI_API_KEY=<your key from aistudio.google.com>
+```

@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { alerts } from '@/db/schema'
 import NavLinks from '@/components/nav-links'
 import HardwareStatus from '@/components/hardware-status'
+import EdwardChat from '@/components/edward-chat'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [{ value: alertCount }] = await db
@@ -44,6 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       <main className="flex-1 overflow-auto">{children}</main>
+      <EdwardChat />
     </div>
   )
 }

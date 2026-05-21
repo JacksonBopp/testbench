@@ -13,6 +13,7 @@
     "subscriber": "tsx --env-file=.env.local scripts/mqtt-subscriber.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.5.0",
     "@ibm-cloud/watsonx-ai": "^1.7.12",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.16.0",
