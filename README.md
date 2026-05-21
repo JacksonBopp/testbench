@@ -1,31 +1,124 @@
 # testbench
 
-A hardware test automation platform that runs automated test sequences on connected devices, collects real-time metrics, and uses IBM watsonx AI to analyze failures and surface root causes.
-
-## Overview
-
-testbench connects a physical device (Raspberry Pi or similar microcontroller) to a web dashboard. From the dashboard you can trigger test sequences, monitor live hardware metrics, view pass/fail history, and get AI-powered failure analysis via IBM watsonx.
+Hardware test automation platform — trigger test sequences on an MSP430FR2355 LaunchPad via a Raspberry Pi Zero 2 W, stream live metrics over MQTT, and analyze failures with IBM watsonx.ai.
 
 ## Stack
 
-- **Frontend/Backend** — Next.js (TypeScript)
-- **Database** — PostgreSQL
-- **Realtime** — MQTT
-- **AI** — IBM watsonx.ai
-- **Hardware** — Raspberry Pi / MicroPython
+| Layer | Technology |
+|---|---|
+| Web app | Next.js 16 (TypeScript, App Router) |
+| Styling | Tailwind CSS v4 |
+| Database | PostgreSQL 16 (Drizzle ORM) |
+| Realtime | MQTT (eclipse-mosquitto) |
+| AI | IBM watsonx.ai — `ibm/granite-3-8b-instruct` |
+| Hardware | Raspberry Pi Zero 2 W (Python 3) + MSP430FR2355 (C) |
 
-## Features
+## Architecture
 
-- Trigger automated test sequences from the web UI
-- Real-time hardware metric collection (temperature, voltage, GPIO states)
-- Pass/fail logging with history and trend graphs
-- IBM watsonx integration for failure log analysis and root cause summaries
-- Alert notifications on test failures
+```
+MSP430FR2355
+  │  UART 9600 baud (P4.2 TX / P4.3 RX)
+  ▼
+Raspberry Pi Zero 2 W  ──  pi/bridge.py
+  │  WiFi → MQTT publish
+  ▼
+Mosquitto broker (Docker, port 1883)
+  │
+  ├─ scripts/mqtt-subscriber.ts  →  PostgreSQL
+  └─ /api/metrics/stream (SSE)  →  browser
+```
 
-## Getting Started
+## Quick start
 
-> Setup instructions coming soon.
+### Prerequisites
 
-## Hardware
+- Docker Desktop
+- Node.js 20+
+- IBM watsonx.ai API key + project (Lite plan — free)
 
-Tested with a Raspberry Pi running MicroPython. Additional sensor support (INA219, BME280) planned.
+### 1. Environment
+
+Create `.env.local`:
+
+```
+DATABASE_URL=postgres://testbench:testbench@localhost:5432/testbench
+MQTT_URL=mqtt://localhost:1883
+WATSONX_API_KEY=<your key>
+WATSONX_PROJECT_ID=<your project id>
+WATSONX_SERVICE_URL=https://us-south.ml.cloud.ibm.com
+```
+
+### 2. Start infrastructure
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL on `5432` and Mosquitto on `1883`.
+
+### 3. Migrate database
+
+```bash
+npm run db:migrate
+```
+
+### 4. Run the app
+
+In two separate terminals:
+
+```bash
+# Terminal 1 — Next.js
+npm run dev
+
+# Terminal 2 — MQTT → DB bridge
+npm run subscriber
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Pi setup
+
+On the Raspberry Pi Zero 2 W:
+
+```bash
+pip3 install paho-mqtt pyserial
+```
+
+Copy `pi/bridge.py` to the Pi, then:
+
+```bash
+MQTT_HOST=<dev-machine-ip> python3 bridge.py
+```
+
+The bridge reads JSON frames from the MSP430 over UART (`/dev/ttyS0`) and publishes them to the broker.
+
+## Firmware
+
+Open `firmware/main.c` in Code Composer Studio (or build with `msp430-elf-gcc`). Flash to the MSP430FR2355 LaunchPad. The firmware emits 1 Hz JSON telemetry frames over UART (eUSCI_A1 — P4.2 TX, P4.3 RX).
+
+## MQTT topics
+
+| Topic | Direction | Payload |
+|---|---|---|
+| `testbench/metrics` | Pi → broker | `{ runId?, temperature, voltage, currentMa, gpioStates }` |
+| `testbench/run/status` | Pi → broker | `{ runId, status, finishedAt? }` |
+| `testbench/run/step` | Pi → broker | `{ runId, sequence, name, status, startedAt, ... }` |
+| `testbench/heartbeat` | Pi → broker | `{ hardwareId, timestamp }` |
+
+## API routes
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/test-runs` | List all runs |
+| POST | `/api/test-runs` | Create a run |
+| GET | `/api/test-runs/[id]` | Get a run |
+| PATCH | `/api/test-runs/[id]` | Update run status |
+| GET | `/api/test-runs/[id]/steps` | List steps |
+| POST | `/api/test-runs/[id]/steps` | Add a step |
+| GET | `/api/metrics` | Historical metrics |
+| POST | `/api/metrics` | Insert a metric reading |
+| GET | `/api/metrics/stream` | SSE stream (live MQTT feed) |
+| GET | `/api/alerts` | List alerts |
+| POST | `/api/alerts` | Create an alert |
+| PATCH | `/api/alerts/[id]` | Acknowledge an alert |
+| POST | `/api/analysis` | Run watsonx analysis on a failed run |
