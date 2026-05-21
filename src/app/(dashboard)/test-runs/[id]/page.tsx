@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { eq, asc } from 'drizzle-orm'
 import { db } from '@/db'
 import { testRuns, testSteps } from '@/db/schema'
+import AnalyzeButton from '@/components/analyze-button'
 
 const RUN_STATUS_STYLES: Record<string, string> = {
   pending: 'bg-zinc-100 text-zinc-600',
@@ -59,9 +60,14 @@ export default async function TestRunDetailPage({
             {run.hardwareId && <span className="ml-2 text-zinc-400">· {run.hardwareId}</span>}
           </p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-sm font-medium ${RUN_STATUS_STYLES[run.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-          {run.status}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={`rounded-full px-3 py-1 text-sm font-medium ${RUN_STATUS_STYLES[run.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+            {run.status}
+          </span>
+          {run.status !== 'pending' && run.status !== 'running' && (
+            <AnalyzeButton runId={run.id} />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">

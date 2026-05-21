@@ -1,10 +1,19 @@
+import { eq, count } from 'drizzle-orm'
+import { db } from '@/db'
+import { alerts } from '@/db/schema'
 import NavLinks from '@/components/nav-links'
+import HardwareStatus from '@/components/hardware-status'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const [{ value: alertCount }] = await db
+    .select({ value: count() })
+    .from(alerts)
+    .where(eq(alerts.acknowledged, false))
+
   return (
     <div className="flex h-full">
       <aside className="w-60 shrink-0 flex flex-col bg-zinc-950">
@@ -12,13 +21,10 @@ export default function DashboardLayout({
           <span className="text-white font-semibold tracking-tight">testbench</span>
         </div>
         <div className="flex-1 py-4">
-          <NavLinks />
+          <NavLinks alertCount={alertCount} />
         </div>
         <div className="px-6 py-4 border-t border-zinc-800">
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-zinc-600" />
-            <span className="text-xs text-zinc-500">Hardware: disconnected</span>
-          </div>
+          <HardwareStatus />
         </div>
       </aside>
       <main className="flex-1 overflow-auto bg-white">{children}</main>
