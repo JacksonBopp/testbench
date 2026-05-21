@@ -15,6 +15,13 @@
       "when": 1779392895591,
       "tag": "0001_sloppy_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779393971309,
+      "tag": "0002_lethal_preak",
+      "breakpoints": true
     }
   ]
 }

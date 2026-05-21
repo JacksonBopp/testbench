@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const links = [
-  { href: '/dashboard', label: 'Dashboard',   badge: false },
-  { href: '/test-runs', label: 'Test Runs',   badge: false },
-  { href: '/metrics',   label: 'Live Metrics', badge: false },
-  { href: '/alerts',    label: 'Alerts',       badge: true  },
-  { href: '/analysis',  label: 'AI Analysis',  badge: false },
+  { href: '/dashboard',  label: 'Dashboard',    badge: false },
+  { href: '/test-runs',  label: 'Test Runs',     badge: false },
+  { href: '/firmware',   label: 'Firmware',      badge: false },
+  { href: '/metrics',    label: 'Live Metrics',  badge: false },
+  { href: '/alerts',     label: 'Alerts',        badge: true  },
+  { href: '/analysis',   label: 'AI Analysis',   badge: false },
+  { href: '/settings',   label: 'Settings',      badge: false },
 ]
 
 export default function NavLinks({ alertCount = 0 }: { alertCount?: number }) {

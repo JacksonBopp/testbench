@@ -61,6 +61,7 @@ export default async function TestRunDetailPage({
           <p className="mt-1 text-sm text-zinc-500">
             Started {run.startedAt.toLocaleString()}
             {run.hardwareId && <span className="ml-2 text-zinc-400">· {run.hardwareId}</span>}
+            {run.firmwareVersion && <span className="ml-2 font-mono text-zinc-400">fw:{run.firmwareVersion}</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">

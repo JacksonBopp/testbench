@@ -22,6 +22,7 @@ export const testRuns = pgTable('test_runs', {
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   status: runStatus('status').default('pending').notNull(),
   hardwareId: text('hardware_id'),
+  firmwareVersion: text('firmware_version'),
   notes: text('notes'),
   analysisResult: text('analysis_result'),
   analyzedAt: timestamp('analyzed_at', { withTimezone: true }),
@@ -73,6 +74,18 @@ export const alerts = pgTable(
   },
   (t) => [index('alerts_run_id_idx').on(t.runId)],
 )
+
+export const thresholdCondition = pgEnum('threshold_condition', ['lt', 'gt'])
+
+export const thresholds = pgTable('thresholds', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  metric: text('metric').notNull(),       // 'voltage' | 'temperature' | 'currentMa'
+  condition: thresholdCondition('condition').notNull(),
+  value: real('value').notNull(),
+  level: alertLevel('level').notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+})
 
 export const testRunsRelations = relations(testRuns, ({ many }) => ({
   steps: many(testSteps),

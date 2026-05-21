@@ -1,0 +1,72 @@
+name: Hardware Validation
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'firmware/**'
+  pull_request:
+    paths:
+      - 'firmware/**'
+  workflow_dispatch:
+    inputs:
+      timeout:
+        description: 'Test timeout in seconds'
+        default: '120'
+        required: false
+
+jobs:
+  validate:
+    name: Run hardware test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trigger hardware test
+        id: hardware_test
+        run: |
+          TIMEOUT_MS=$(( ${{ inputs.timeout || 120 }} * 1000 ))
+
+          echo "Triggering testbench run for firmware at ${{ github.sha }}"
+
+          RESULT=$(curl -sf \
+            --max-time $(( ${{ inputs.timeout || 120 }} + 10 )) \
+            -X POST "${{ secrets.TESTBENCH_URL }}/api/webhook/run" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"firmwareVersion\": \"${{ github.sha }}\",
+              \"hardwareId\": \"msp430-01\",
+              \"notes\": \"CI run for ${{ github.ref }} — ${{ github.event.head_commit.message }}\",
+              \"timeout\": $TIMEOUT_MS
+            }")
+
+          echo "result=$RESULT" >> $GITHUB_OUTPUT
+          echo "$RESULT" | jq .
+
+      - name: Evaluate result
+        run: |
+          RESULT='${{ steps.hardware_test.outputs.result }}'
+          STATUS=$(echo "$RESULT" | jq -r '.status')
+          PASSED=$(echo "$RESULT" | jq -r '.passed')
+          FAILED=$(echo "$RESULT" | jq -r '.failed')
+          RUN_ID=$(echo "$RESULT" | jq -r '.runId')
+
+          echo "Run ID:  $RUN_ID"
+          echo "Status:  $STATUS"
+          echo "Passed:  $PASSED steps"
+          echo "Failed:  $FAILED steps"
+
+          if [ "$STATUS" = "timeout" ]; then
+            echo "::error::Hardware test timed out — is the device connected and the subscriber running?"
+            exit 1
+          fi
+
+          if [ "$FAILED" -gt "0" ]; then
+            echo "::error::$FAILED step(s) failed. Check ${{ secrets.TESTBENCH_URL }}/test-runs/$RUN_ID"
+            echo "$RESULT" | jq '.steps[] | select(.status == "failed")'
+            exit 1
+          fi
+
+          echo "::notice::All $PASSED steps passed for firmware ${{ github.sha }}"

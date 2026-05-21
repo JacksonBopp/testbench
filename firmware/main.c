@@ -1,5 +1,6 @@
 /*
  * testbench firmware — MSP430FR2355 LaunchPad
+ * Firmware version reported in all heartbeat and run_start frames.
  *
  * UART: eUSCI_A1 — P4.2 TX / P4.3 RX — 9600 baud, 8N1
  *
@@ -21,6 +22,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+
+#define FIRMWARE_VERSION "1.0.0"
+#define HARDWARE_ID      "msp430-01"
 
 /* ── UART ─────────────────────────────────────────────────────────────────── */
 #define UART_BAUD  9600UL
@@ -224,7 +228,7 @@ void run_test_sequence(const char *run_id) {
 
     /* announce start */
     snprintf(buf, sizeof(buf),
-        "{\"type\":\"run_start\",\"runId\":\"%s\",\"hardwareId\":\"msp430-01\"}",
+        "{\"type\":\"run_start\",\"runId\":\"%s\",\"hardwareId\":\"" HARDWARE_ID "\",\"firmwareVersion\":\"" FIRMWARE_VERSION "\"}",
         run_id);
     uart_json(buf);
 
@@ -263,7 +267,8 @@ void run_test_sequence(const char *run_id) {
     }
 
     snprintf(buf, sizeof(buf),
-        "{\"type\":\"run_end\",\"runId\":\"%s\",\"status\":\"%s\",\"finishedAt\":\"t+%lus\"}",
+        "{\"type\":\"run_end\",\"runId\":\"%s\",\"status\":\"%s\","
+        "\"firmwareVersion\":\"" FIRMWARE_VERSION "\",\"finishedAt\":\"t+%lus\"}",
         run_id, overall_passed ? "passed" : "failed", (unsigned long)uptime_s);
     uart_json(buf);
 }
@@ -281,7 +286,7 @@ int main(void) {
 
     __enable_interrupt();
 
-    uart_json("{\"type\":\"heartbeat\",\"hardwareId\":\"msp430-01\"}");
+    uart_json("{\"type\":\"heartbeat\",\"hardwareId\":\"" HARDWARE_ID "\",\"firmwareVersion\":\"" FIRMWARE_VERSION "\"}");
 
     char buf[256];
     uint8_t metrics_tick = 0;
@@ -320,7 +325,7 @@ int main(void) {
             /* heartbeat every 30s */
             if (++metrics_tick >= 30) {
                 metrics_tick = 0;
-                uart_json("{\"type\":\"heartbeat\",\"hardwareId\":\"msp430-01\"}");
+                uart_json("{\"type\":\"heartbeat\",\"hardwareId\":\"" HARDWARE_ID "\",\"firmwareVersion\":\"" FIRMWARE_VERSION "\"}");
             }
         }
 

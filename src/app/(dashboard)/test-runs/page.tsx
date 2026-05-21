@@ -36,11 +36,12 @@ export default async function TestRunsPage() {
       </div>
 
       <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <div className="grid grid-cols-5 px-5 py-3 bg-zinc-50 border-b border-zinc-200 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+        <div className="grid grid-cols-6 px-5 py-3 bg-zinc-50 border-b border-zinc-200 text-xs font-medium text-zinc-500 uppercase tracking-wide">
           <span>Run ID</span>
           <span>Started</span>
           <span>Duration</span>
           <span>Result</span>
+          <span>Firmware</span>
           <span>Hardware</span>
         </div>
 
@@ -53,7 +54,7 @@ export default async function TestRunsPage() {
             <Link
               key={run.id}
               href={`/test-runs/${run.id}`}
-              className="grid grid-cols-5 px-5 py-4 border-b border-zinc-100 last:border-0 text-sm text-zinc-700 items-center hover:bg-zinc-50 transition-colors"
+              className="grid grid-cols-6 px-5 py-4 border-b border-zinc-100 last:border-0 text-sm text-zinc-700 items-center hover:bg-zinc-50 transition-colors"
             >
               <span className="font-mono text-xs text-zinc-500">{run.id.slice(0, 8)}</span>
               <span>{run.startedAt.toLocaleString()}</span>
@@ -63,6 +64,7 @@ export default async function TestRunsPage() {
                   {run.status}
                 </span>
               </span>
+              <span className="font-mono text-xs text-zinc-400">{run.firmwareVersion ?? '—'}</span>
               <span className="text-zinc-400">{run.hardwareId ?? '—'}</span>
             </Link>
           ))

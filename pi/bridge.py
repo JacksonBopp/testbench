@@ -133,9 +133,10 @@ def handle(frame: dict):
 
     elif t == "run_end":
         publish("run/status", {
-            "runId":      frame["runId"],
-            "status":     frame.get("status", "passed"),
-            "finishedAt": frame.get("finishedAt", now_iso()),
+            "runId":           frame["runId"],
+            "status":          frame.get("status", "passed"),
+            "firmwareVersion": frame.get("firmwareVersion"),
+            "finishedAt":      frame.get("finishedAt", now_iso()),
         })
 
     elif t == "heartbeat":
