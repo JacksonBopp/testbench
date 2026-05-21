@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Test run not found' }, { status: 404 })
   }
 
-  if (run.status !== 'failed' && run.status !== 'error') {
+  if (run.status === 'pending' || run.status === 'running') {
     return Response.json(
-      { error: 'Only failed or errored runs can be analyzed' },
+      { error: 'Run is not yet complete' },
       { status: 400 },
     )
   }
