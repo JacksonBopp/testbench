@@ -22,10 +22,12 @@ export async function POST(request: NextRequest) {
   }
 
   if (run.status === 'pending' || run.status === 'running') {
-    return Response.json(
-      { error: 'Run is not yet complete' },
-      { status: 400 },
-    )
+    return Response.json({ error: 'Run is not yet complete' }, { status: 400 })
+  }
+
+  // return cached result if already analyzed
+  if (run.analysisResult) {
+    return Response.json({ analysis: run.analysisResult, cached: true })
   }
 
   try {
@@ -37,6 +39,12 @@ export async function POST(request: NextRequest) {
       finishedAt: run.finishedAt ?? null,
       steps: run.steps,
     })
+
+    await db
+      .update(testRuns)
+      .set({ analysisResult: analysis, analyzedAt: new Date() })
+      .where(eq(testRuns.id, runId))
+
     return Response.json({ analysis })
   } catch (err) {
     console.error('watsonx error:', err)

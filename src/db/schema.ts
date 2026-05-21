@@ -23,6 +23,8 @@ export const testRuns = pgTable('test_runs', {
   status: runStatus('status').default('pending').notNull(),
   hardwareId: text('hardware_id'),
   notes: text('notes'),
+  analysisResult: text('analysis_result'),
+  analyzedAt: timestamp('analyzed_at', { withTimezone: true }),
 })
 
 export const testSteps = pgTable(

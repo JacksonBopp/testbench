@@ -8,6 +8,13 @@
       "when": 1779318881854,
       "tag": "0000_sour_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779392895591,
+      "tag": "0001_sloppy_rocket_racer",
+      "breakpoints": true
     }
   ]
 }

@@ -2,9 +2,17 @@
 
 import { useState } from 'react'
 
-export default function AnalyzeButton({ runId }: { runId: string }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [result, setResult] = useState<string | null>(null)
+export default function AnalyzeButton({
+  runId,
+  savedResult = null,
+}: {
+  runId: string
+  savedResult?: string | null
+}) {
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>(
+    savedResult ? 'done' : 'idle'
+  )
+  const [result, setResult] = useState<string | null>(savedResult)
 
   async function analyze() {
     setState('loading')
@@ -57,7 +65,7 @@ export default function AnalyzeButton({ runId }: { runId: string }) {
             onClick={() => { setState('idle'); setResult(null) }}
             className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
           >
-            Dismiss
+            {state === 'done' ? 'Re-analyze' : 'Dismiss'}
           </button>
         </div>
       )}

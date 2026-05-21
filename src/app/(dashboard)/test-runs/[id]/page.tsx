@@ -4,6 +4,7 @@ import { eq, asc } from 'drizzle-orm'
 import { db } from '@/db'
 import { testRuns, testSteps } from '@/db/schema'
 import AnalyzeButton from '@/components/analyze-button'
+import RunPoller from '@/components/run-poller'
 
 const RUN_STATUS_STYLES: Record<string, string> = {
   pending: 'bg-zinc-100 text-zinc-600',
@@ -52,6 +53,8 @@ export default async function TestRunDetailPage({
         </Link>
       </div>
 
+      <RunPoller status={run.status} />
+
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 font-mono">{run.id}</h1>
@@ -65,7 +68,7 @@ export default async function TestRunDetailPage({
             {run.status}
           </span>
           {run.status !== 'pending' && run.status !== 'running' && (
-            <AnalyzeButton runId={run.id} />
+            <AnalyzeButton runId={run.id} savedResult={run.analysisResult ?? null} />
           )}
         </div>
       </div>
