@@ -1,7 +1,6 @@
 name: Hardware Validation
 
 on:
-  # Run manually from the Actions tab with a custom timeout
   workflow_dispatch:
     inputs:
       timeout:
@@ -9,14 +8,12 @@ on:
         default: '120'
         required: false
 
-  # Uncomment once TESTBENCH_URL is set and testbench is publicly reachable:
+  # Uncomment once TESTBENCH_URL secret is set and testbench is deployed:
   # push:
   #   branches: [main, master]
-  #   paths:
-  #     - 'firmware/**'
+  #   paths: [firmware/**]
   # pull_request:
-  #   paths:
-  #     - 'firmware/**'
+  #   paths: [firmware/**]
 
 jobs:
   validate:
@@ -24,19 +21,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    # Skip entirely if the secret isn't configured rather than failing
-    if: ${{ secrets.TESTBENCH_URL != '' }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trigger hardware test
-        id: hardware_test
+      - name: Run hardware validation
         env:
           TESTBENCH_URL: ${{ secrets.TESTBENCH_URL }}
         run: |
-          TIMEOUT_MS=$(( ${{ inputs.timeout || 120 }} * 1000 ))
+          if [ -z "$TESTBENCH_URL" ]; then
+            echo "::notice::TESTBENCH_URL secret not set — skipping hardware validation."
+            echo "Add TESTBENCH_URL in Settings > Secrets and variables > Actions."
+            exit 0
+          fi
 
+          TIMEOUT_MS=$(( ${{ inputs.timeout || 120 }} * 1000 ))
           echo "Triggering testbench run for firmware ${{ github.sha }}"
 
           RESULT=$(curl -sf \
@@ -46,27 +44,18 @@ jobs:
             -d "{
               \"firmwareVersion\": \"${{ github.sha }}\",
               \"hardwareId\": \"msp430-01\",
-              \"notes\": \"CI: ${{ github.ref }} — ${{ github.event.head_commit.message }}\",
+              \"notes\": \"CI: ${{ github.ref }}\",
               \"timeout\": ${TIMEOUT_MS}
             }")
 
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
           echo "$RESULT" | jq .
 
-      - name: Evaluate result
-        run: |
-          RESULT='${{ steps.hardware_test.outputs.result }}'
           STATUS=$(echo "$RESULT" | jq -r '.status')
           PASSED=$(echo "$RESULT" | jq -r '.passed // 0')
           FAILED=$(echo "$RESULT" | jq -r '.failed // 0')
           RUN_ID=$(echo "$RESULT" | jq -r '.runId')
 
-          echo "Run ID:  $RUN_ID"
-          echo "Status:  $STATUS"
-          echo "Passed:  $PASSED steps"
-          echo "Failed:  $FAILED steps"
+          echo "Run: $RUN_ID | Status: $STATUS | Passed: $PASSED | Failed: $FAILED"
 
           if [ "$STATUS" = "timeout" ]; then
             echo "::error::Hardware test timed out — is the device connected and subscriber running?"
@@ -79,4 +68,4 @@ jobs:
             exit 1
           fi
 
-          echo "::notice::All $PASSED steps passed for firmware ${{ github.sha }}"
+          echo "::notice::All $PASSED steps passed for ${{ github.sha }}"
