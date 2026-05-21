@@ -46,14 +46,37 @@ client.on('message', async (topic, payload) => {
 
   try {
     if (topic === 'testbench/metrics') {
+      const voltage     = (msg.voltage     as number) ?? null
+      const temperature = (msg.temperature as number) ?? null
+      const currentMa   = (msg.currentMa   as number) ?? null
+
       await db.insert(schema.metrics).values({
-        runId:       (msg.runId as string)  ?? null,
-        temperature: (msg.temperature as number) ?? null,
-        voltage:     (msg.voltage as number)     ?? null,
-        currentMa:   (msg.currentMa as number)   ?? null,
-        gpioStates:  (msg.gpioStates as Record<string, boolean>) ?? null,
+        runId: (msg.runId as string) ?? null,
+        temperature,
+        voltage,
+        currentMa,
+        gpioStates: (msg.gpioStates as Record<string, boolean>) ?? null,
       })
       console.log('[subscriber] metrics saved')
+
+      /* threshold alerts */
+      const runId = (msg.runId as string) ?? null
+      if (voltage !== null && voltage < 3.0) {
+        await db.insert(schema.alerts).values({
+          runId,
+          level: 'error',
+          message: `Voltage low: ${voltage.toFixed(3)}V (threshold 3.0V)`,
+        })
+        console.warn('[subscriber] ALERT: voltage low', voltage)
+      }
+      if (temperature !== null && temperature > 70) {
+        await db.insert(schema.alerts).values({
+          runId,
+          level: 'warning',
+          message: `Temperature high: ${temperature.toFixed(1)}°C (threshold 70°C)`,
+        })
+        console.warn('[subscriber] ALERT: temperature high', temperature)
+      }
 
     } else if (topic === 'testbench/run/status') {
       const { runId, status, finishedAt } = msg as {
