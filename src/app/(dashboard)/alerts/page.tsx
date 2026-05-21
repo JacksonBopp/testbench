@@ -2,71 +2,89 @@ import { desc } from 'drizzle-orm'
 import { db } from '@/db'
 import { alerts } from '@/db/schema'
 import AcknowledgeButton from '@/components/acknowledge-button'
-
-const LEVEL_STYLES: Record<string, string> = {
-  warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  error:   'bg-red-50 text-red-700 border-red-200',
-}
-
-const LEVEL_DOT: Record<string, string> = {
-  warning: 'bg-yellow-400',
-  error:   'bg-red-500',
-}
+import { Bell, BellOff, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
 
 export default async function AlertsPage() {
   const rows = await db.select().from(alerts).orderBy(desc(alerts.triggeredAt))
-  const active = rows.filter((a) => !a.acknowledged)
-  const archived = rows.filter((a) => a.acknowledged)
+  const active   = rows.filter((a) => !a.acknowledged)
+  const archived = rows.filter((a) =>  a.acknowledged)
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-6xl mx-auto">
+
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-zinc-900">Alerts</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Threshold breaches and anomalies detected during test runs.
-        </p>
+        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Alerts</h1>
+        <p className="mt-1 text-sm text-zinc-500">Threshold breaches and anomalies detected during test runs.</p>
       </div>
 
-      <section className="mb-10">
-        <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
-          Active{active.length > 0 && <span className="ml-2 text-red-600">{active.length}</span>}
-        </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+      {/* active */}
+      <section className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell size={13} className="text-zinc-400" />
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Active</h2>
+          {active.length > 0 && (
+            <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-semibold text-white leading-none min-w-[18px] text-center">
+              {active.length}
+            </span>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
           {active.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-zinc-400">All clear.</div>
+            <div className="px-5 py-12 text-center">
+              <CheckCircle2 size={32} className="mx-auto text-emerald-300 mb-3" />
+              <p className="text-sm text-zinc-400">All clear — no active alerts.</p>
+            </div>
           ) : (
             active.map((alert) => (
-              <div key={alert.id} className="flex items-start gap-4 px-5 py-4 border-b border-zinc-100 last:border-0">
-                <span className={`mt-1.5 size-2 rounded-full shrink-0 ${LEVEL_DOT[alert.level] ?? 'bg-zinc-400'}`} />
+              <div key={alert.id} className="flex items-start gap-4 px-5 py-4 border-b border-zinc-50 last:border-0">
+                <div className="mt-0.5 shrink-0">
+                  {alert.level === 'error'
+                    ? <AlertCircle size={16} className="text-red-500" />
+                    : <AlertTriangle size={16} className="text-amber-500" />
+                  }
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-800">{alert.message}</p>
-                  <p className="mt-0.5 text-xs text-zinc-400">
+                  <p className="text-sm font-medium text-zinc-800 leading-snug">{alert.message}</p>
+                  <p className="mt-1 text-xs text-zinc-400">
                     {alert.triggeredAt.toLocaleString()}
-                    {alert.runId && <span className="ml-2 font-mono">{alert.runId.slice(0, 8)}</span>}
+                    {alert.runId && (
+                      <span className="ml-2 font-mono text-zinc-300">{alert.runId.slice(0, 8)}</span>
+                    )}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${LEVEL_STYLES[alert.level] ?? ''}`}>
-                  {alert.level}
-                </span>
-                <AcknowledgeButton id={alert.id} />
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                    alert.level === 'error'
+                      ? 'bg-red-50 text-red-600 border-red-200'
+                      : 'bg-amber-50 text-amber-600 border-amber-200'
+                  }`}>
+                    {alert.level}
+                  </span>
+                  <AcknowledgeButton id={alert.id} />
+                </div>
               </div>
             ))
           )}
         </div>
       </section>
 
+      {/* archived */}
       {archived.length > 0 && (
         <section>
-          <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Acknowledged</h2>
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden opacity-60">
+          <div className="flex items-center gap-2 mb-3">
+            <BellOff size={13} className="text-zinc-300" />
+            <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Acknowledged</h2>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden opacity-60">
             {archived.map((alert) => (
-              <div key={alert.id} className="flex items-start gap-4 px-5 py-4 border-b border-zinc-100 last:border-0">
-                <span className="mt-1.5 size-2 rounded-full shrink-0 bg-zinc-300" />
+              <div key={alert.id} className="flex items-start gap-4 px-5 py-3.5 border-b border-zinc-50 last:border-0">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-300" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-500 line-through">{alert.message}</p>
-                  <p className="mt-0.5 text-xs text-zinc-400">{alert.triggeredAt.toLocaleString()}</p>
+                  <p className="text-sm text-zinc-400 line-through leading-snug">{alert.message}</p>
+                  <p className="mt-0.5 text-xs text-zinc-300">{alert.triggeredAt.toLocaleString()}</p>
                 </div>
-                <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-400">
+                <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-400">
                   {alert.level}
                 </span>
               </div>

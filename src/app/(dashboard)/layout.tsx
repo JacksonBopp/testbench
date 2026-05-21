@@ -4,30 +4,46 @@ import { alerts } from '@/db/schema'
 import NavLinks from '@/components/nav-links'
 import HardwareStatus from '@/components/hardware-status'
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [{ value: alertCount }] = await db
     .select({ value: count() })
     .from(alerts)
     .where(eq(alerts.acknowledged, false))
 
   return (
-    <div className="flex h-full">
-      <aside className="w-60 shrink-0 flex flex-col bg-zinc-950">
-        <div className="px-6 py-5 border-b border-zinc-800">
-          <span className="text-white font-semibold tracking-tight">testbench</span>
+    <div className="flex h-full bg-zinc-50">
+      <aside className="w-64 shrink-0 flex flex-col bg-zinc-900 border-r border-zinc-800">
+
+        {/* brand */}
+        <div className="px-5 py-5 border-b border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
+                <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
+                <rect x="1" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
+                <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white tracking-tight">testbench</p>
+              <p className="text-xs text-zinc-500">Hardware QA Platform</p>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 py-4">
+
+        {/* nav */}
+        <div className="flex-1 py-4 overflow-y-auto">
           <NavLinks alertCount={alertCount} />
         </div>
-        <div className="px-6 py-4 border-t border-zinc-800">
+
+        {/* hardware status */}
+        <div className="px-4 py-4 border-t border-zinc-800">
           <HardwareStatus />
         </div>
       </aside>
-      <main className="flex-1 overflow-auto bg-white">{children}</main>
+
+      <main className="flex-1 overflow-auto">{children}</main>
     </div>
   )
 }
