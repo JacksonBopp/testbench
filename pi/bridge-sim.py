@@ -28,8 +28,8 @@ def publish(client, topic, payload):
     client.publish(f"testbench/{topic}", json.dumps(payload), qos=1)
     print(f"  → testbench/{topic}: {json.dumps(payload)[:80]}")
 
-def run_scenario(client, scenario: str):
-    run_id = str(uuid4())
+def run_scenario(client, scenario: str, run_id: str | None = None):
+    run_id = run_id or str(uuid4())
     hardware_id = "msp430-sim"
     print(f"\n[sim] starting {scenario!r} scenario — run {run_id[:8]}")
 
@@ -122,10 +122,25 @@ def main():
     parser.add_argument("--port",     type=int, default=1883)
     parser.add_argument("--scenario", choices=["normal", "failing"], default="normal")
     parser.add_argument("--loop",     action="store_true", help="repeat indefinitely")
+    parser.add_argument("--listen",   action="store_true",
+                        help="wait for testbench/command/run instead of running immediately")
     args = parser.parse_args()
 
+    pending_runs: list[dict] = []
+
+    def on_message(c, userdata, msg):
+        try:
+            payload = json.loads(msg.payload.decode())
+        except Exception:
+            return
+        if msg.topic == "testbench/command/run":
+            print(f"[sim] received command/run: {payload.get('runId', '?')[:8]}")
+            pending_runs.append(payload)
+
     client = mqtt.Client(client_id="testbench-sim", clean_session=True)
+    client.on_message = on_message
     client.connect(args.host, args.port, keepalive=60)
+    client.subscribe("testbench/command/#", qos=1)
     client.loop_start()
 
     print(f"[sim] connected to {args.host}:{args.port}")
@@ -135,12 +150,23 @@ def main():
     threading.Thread(target=heartbeat_loop, args=(client,), daemon=True).start()
 
     try:
-        while True:
-            run_scenario(client, args.scenario)
-            if not args.loop:
-                break
-            print("[sim] waiting 10s before next run…")
-            time.sleep(10)
+        if args.listen:
+            print("[sim] listening for testbench/command/run — press Ctrl-C to stop")
+            while True:
+                if pending_runs:
+                    cmd = pending_runs.pop(0)
+                    # override the run_id so it matches what the server created
+                    run_id = cmd.get("runId")
+                    if run_id:
+                        run_scenario(client, args.scenario, run_id=run_id)
+                time.sleep(0.2)
+        else:
+            while True:
+                run_scenario(client, args.scenario)
+                if not args.loop:
+                    break
+                print("[sim] waiting 10s before next run…")
+                time.sleep(10)
     except KeyboardInterrupt:
         print("\n[sim] stopped")
     finally:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pi Zero 2 W — MSP430FR2355 UART → MQTT bridge.
+Pi Zero 2 W — MSP430FR2355 UART ↔ MQTT bridge.
 
 Wiring:
   MSP430 P4.2 (TX, 3.3V) → Pi GPIO 15 (RX, pin 10)
@@ -9,12 +9,15 @@ Wiring:
 
 MSP430 sends newline-terminated JSON frames over UART at 9600 baud.
 
-Frame types:
-  {"type":"metrics","temperature":25.1,"voltage":3.28,"currentMa":12.4,"gpio":{"P1.0":true,"P1.1":false}}
+Outbound (MSP430 → MQTT):
+  {"type":"metrics","temperature":25.1,"voltage":3.28,"currentMa":12.4,"gpio":{"P1.0":true,...}}
   {"type":"run_start","runId":"<uuid>","hardwareId":"msp430-01"}
-  {"type":"run_step","runId":"<uuid>","sequence":1,"name":"VDD check","status":"passed","startedAt":"...","finishedAt":"...","message":null}
+  {"type":"run_step","runId":"<uuid>","sequence":1,"name":"VDD check","status":"passed",...}
   {"type":"run_end","runId":"<uuid>","status":"passed","finishedAt":"..."}
   {"type":"heartbeat","hardwareId":"msp430-01"}
+
+Inbound (MQTT → MSP430):
+  testbench/command/run  { runId, hardwareId? }  → triggers test sequence
 
 Install deps on Pi:
   pip3 install paho-mqtt pyserial
@@ -41,12 +44,25 @@ HARDWARE_ID  = os.environ.get("HARDWARE_ID",  "msp430-01")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [bridge] %(message)s")
 log = logging.getLogger(__name__)
 
+# serial port ref shared between threads
+_ser: serial.Serial | None = None
+
+# ── UART send ───────────────────────────────────────────────────────────────────
+def uart_send(frame: dict):
+    if _ser and _ser.is_open:
+        line = json.dumps(frame) + "\n"
+        _ser.write(line.encode())
+        log.info("→ MSP430: %s", line.strip())
+    else:
+        log.warning("uart not ready — cannot send command")
+
 # ── MQTT ────────────────────────────────────────────────────────────────────────
 mqttc = mqtt.Client(client_id=f"pi-bridge-{HARDWARE_ID}", clean_session=True)
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         log.info("MQTT connected to %s:%d", BROKER_HOST, BROKER_PORT)
+        client.subscribe("testbench/command/#", qos=1)
     else:
         log.error("MQTT connect failed rc=%d", rc)
 
@@ -54,8 +70,26 @@ def on_disconnect(client, userdata, rc):
     if rc != 0:
         log.warning("MQTT unexpected disconnect rc=%d — will reconnect", rc)
 
+def on_message(client, userdata, msg):
+    topic = msg.topic
+    try:
+        payload = json.loads(msg.payload.decode())
+    except json.JSONDecodeError:
+        log.warning("non-JSON on %s", topic)
+        return
+
+    if topic == "testbench/command/run":
+        run_id     = payload.get("runId")
+        hw_id      = payload.get("hardwareId", HARDWARE_ID)
+        if not run_id:
+            log.warning("command/run missing runId")
+            return
+        log.info("command: start run %s", run_id)
+        uart_send({"type": "command_run", "runId": run_id, "hardwareId": hw_id})
+
 mqttc.on_connect    = on_connect
 mqttc.on_disconnect = on_disconnect
+mqttc.on_message    = on_message
 mqttc.connect_async(BROKER_HOST, BROKER_PORT, keepalive=60)
 mqttc.loop_start()
 
@@ -66,7 +100,7 @@ def publish(topic: str, payload: dict):
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-# ── frame handlers ──────────────────────────────────────────────────────────────
+# ── inbound frame handlers (MSP430 → MQTT) ─────────────────────────────────────
 def handle(frame: dict):
     t = frame.get("type")
 
@@ -115,10 +149,10 @@ def handle(frame: dict):
 
 # ── main loop ───────────────────────────────────────────────────────────────────
 def main():
+    global _ser
     log.info("opening %s at %d baud", SERIAL_PORT, BAUD_RATE)
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=5)
+    _ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=5)
 
-    # heartbeat thread
     import threading
     def heartbeat_loop():
         while True:
@@ -129,7 +163,7 @@ def main():
 
     def shutdown(sig, frame):
         log.info("shutting down")
-        ser.close()
+        _ser.close()
         mqttc.loop_stop()
         mqttc.disconnect()
         sys.exit(0)
@@ -142,7 +176,7 @@ def main():
 
     while True:
         try:
-            chunk = ser.read(ser.in_waiting or 1)
+            chunk = _ser.read(_ser.in_waiting or 1)
             if not chunk:
                 continue
             buf += chunk
@@ -160,8 +194,8 @@ def main():
             log.error("serial error: %s — retrying in 3s", e)
             time.sleep(3)
             try:
-                ser.close()
-                ser.open()
+                _ser.close()
+                _ser.open()
             except Exception:
                 pass
 
