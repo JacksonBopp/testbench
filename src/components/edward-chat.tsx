@@ -230,7 +230,7 @@ export default function EdwardChat() {
               </button>
             </div>
             <p className="mt-1.5 text-center" style={{ fontSize: '9px', color: '#2a2a2a', letterSpacing: '0.05em' }}>
-              POWERED BY GEMINI · CAN RUN ON WATSONX
+              POWERED BY IBM WATSONX · GRANITE 3.8B
             </p>
           </div>
         </div>
