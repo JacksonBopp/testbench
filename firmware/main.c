@@ -1,17 +1,25 @@
 /*
- * testbench firmware — MSP430FR2355 LaunchPad
- * Firmware version reported in all heartbeat and run_start frames.
+ * testbench REFERENCE firmware — MSP430FR2355 LaunchPad
  *
- * UART: eUSCI_A1 — P4.2 TX / P4.3 RX — 9600 baud, 8N1
+ * This is one concrete implementation of testbench's device contract. The platform
+ * is hardware-agnostic: any MCU (STM32, ESP32, AVR, RP2040, ...) works as long as it
+ * emits/consumes the same newline-terminated JSON frames over UART. When porting to a
+ * different chip, keep the frame schema below identical and replace only the
+ * peripheral code (UART / ADC / GPIO / clock / timer).
  *
- * Outbound JSON frames (to Pi):
+ * HARDWARE_ID is just a free-form label for this board — change it per device.
+ * Firmware version is reported in all heartbeat and run_start/run_end frames.
+ *
+ * UART (this board): eUSCI_A1 — P4.2 TX / P4.3 RX — 9600 baud, 8N1
+ *
+ * Outbound JSON frames (device → bridge):
  *   {"type":"heartbeat","hardwareId":"msp430-01"}
  *   {"type":"metrics","temperature":25.1,"voltage":3.28,"currentMa":12.4,"gpio":{...}}
  *   {"type":"run_start","runId":"...","hardwareId":"msp430-01"}
  *   {"type":"run_step","runId":"...","sequence":1,"name":"VDD check","status":"passed","startedAt":"...","finishedAt":"...","message":null}
  *   {"type":"run_end","runId":"...","status":"passed","finishedAt":"..."}
  *
- * Inbound JSON frames (from Pi):
+ * Inbound JSON frames (bridge → device):
  *   {"type":"command_run","runId":"...","hardwareId":"..."}
  *
  * Build: msp430-elf-gcc -mmcu=msp430fr2355 -O2 -o firmware.elf main.c

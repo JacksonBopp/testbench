@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """
-Pi Zero 2 W — MSP430FR2355 UART ↔ MQTT bridge.
+Device UART ↔ MQTT bridge — hardware-agnostic.
 
-Wiring:
-  MSP430 P4.2 (TX, 3.3V) → Pi GPIO 15 (RX, pin 10)
-  MSP430 P4.3 (RX, 3.3V) → Pi GPIO 14 (TX, pin 8)
+Relays newline-terminated JSON frames between any UART-capable device under test
+and the MQTT broker. The bridge knows nothing about the chip; it only forwards the
+frame schema below, so the same script works for STM32, ESP32, AVR, RP2040, MSP430,
+etc. Runs on any host with a serial port (a Raspberry Pi is the reference).
+
+Reference wiring (MSP430FR2355 + Raspberry Pi):
+  device TX (3.3V) → Pi GPIO 15 (RX, pin 10)
+  device RX (3.3V) → Pi GPIO 14 (TX, pin 8)
   GND → GND
+Adjust pins/levels for your board; use a level shifter if it is not 3.3V tolerant.
 
-MSP430 sends newline-terminated JSON frames over UART at 9600 baud.
+The device sends newline-terminated JSON frames over UART (default 9600 baud).
 
-Outbound (MSP430 → MQTT):
-  {"type":"metrics","temperature":25.1,"voltage":3.28,"currentMa":12.4,"gpio":{"P1.0":true,...}}
-  {"type":"run_start","runId":"<uuid>","hardwareId":"msp430-01"}
+Outbound (device → MQTT):
+  {"type":"metrics","temperature":25.1,"voltage":3.28,"currentMa":12.4,"gpio":{...}}
+  {"type":"run_start","runId":"<uuid>","hardwareId":"device-01"}
   {"type":"run_step","runId":"<uuid>","sequence":1,"name":"VDD check","status":"passed",...}
   {"type":"run_end","runId":"<uuid>","status":"passed","finishedAt":"..."}
-  {"type":"heartbeat","hardwareId":"msp430-01"}
+  {"type":"heartbeat","hardwareId":"device-01"}
 
-Inbound (MQTT → MSP430):
+Inbound (MQTT → device):
   testbench/command/run  { runId, hardwareId? }  → triggers test sequence
 
-Install deps on Pi:
+Configurable via env: SERIAL_PORT, BAUD_RATE, MQTT_HOST, MQTT_PORT, HARDWARE_ID.
+
+Install deps:
   pip3 install paho-mqtt pyserial
 """
 
@@ -39,7 +47,7 @@ SERIAL_PORT  = os.environ.get("SERIAL_PORT",  "/dev/ttyS0")
 BAUD_RATE    = int(os.environ.get("BAUD_RATE", "9600"))
 BROKER_HOST  = os.environ.get("MQTT_HOST",    "192.168.1.100")  # dev machine IP
 BROKER_PORT  = int(os.environ.get("MQTT_PORT", "1883"))
-HARDWARE_ID  = os.environ.get("HARDWARE_ID",  "msp430-01")
+HARDWARE_ID  = os.environ.get("HARDWARE_ID",  "device-01")  # free-form label for this board
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [bridge] %(message)s")
 log = logging.getLogger(__name__)
@@ -52,7 +60,7 @@ def uart_send(frame: dict):
     if _ser and _ser.is_open:
         line = json.dumps(frame) + "\n"
         _ser.write(line.encode())
-        log.info("→ MSP430: %s", line.strip())
+        log.info("→ device: %s", line.strip())
     else:
         log.warning("uart not ready — cannot send command")
 
@@ -100,7 +108,7 @@ def publish(topic: str, payload: dict):
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-# ── inbound frame handlers (MSP430 → MQTT) ─────────────────────────────────────
+# ── inbound frame handlers (device → MQTT) ─────────────────────────────────────
 def handle(frame: dict):
     t = frame.get("type")
 

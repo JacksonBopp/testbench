@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Hardware simulator — publishes fake MSP430 telemetry to the MQTT broker.
-Run this on your dev machine instead of the real Pi + MSP430.
+Hardware simulator — publishes fake device telemetry to the MQTT broker.
+Run this on your dev machine instead of a real device + bridge. Emits the same
+JSON frame contract as pi/bridge.py, so it works without any physical hardware.
 
 Usage:
   python3 pi/bridge-sim.py [--host localhost] [--port 1883] [--scenario normal|failing]
@@ -30,7 +31,7 @@ def publish(client, topic, payload):
 
 def run_scenario(client, scenario: str, run_id: str | None = None):
     run_id = run_id or str(uuid4())
-    hardware_id = "msp430-sim"
+    hardware_id = "sim-device"
     print(f"\n[sim] starting {scenario!r} scenario — run {run_id[:8]}")
 
     # announce run start
@@ -111,7 +112,7 @@ def run_scenario(client, scenario: str, run_id: str | None = None):
 def heartbeat_loop(client):
     while True:
         publish(client, "heartbeat", {
-            "hardwareId": "msp430-sim",
+            "hardwareId": "sim-device",
             "timestamp":  now_iso(),
         })
         time.sleep(30)

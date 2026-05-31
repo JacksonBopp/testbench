@@ -100,7 +100,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"firmwareVersion\": \"${{ github.sha }}\",
-              \"hardwareId\": \"msp430-sim\",
+              \"hardwareId\": \"sim-device\",
               \"notes\": \"CI: ${{ github.ref_name }}\",
               \"timeout\": $(( TIMEOUT * 1000 ))
             }")
@@ -165,7 +165,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"firmwareVersion\": \"${{ github.sha }}\",
-              \"hardwareId\": \"msp430-01\",
+              \"hardwareId\": \"device-01\",
               \"notes\": \"CI: ${{ github.ref_name }}\",
               \"timeout\": $(( TIMEOUT * 1000 ))
             }")
