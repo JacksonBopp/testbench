@@ -47,6 +47,16 @@ MQTT_URL=mqtt://localhost:1883
 WATSONX_API_KEY=<your key>
 WATSONX_PROJECT_ID=<your project id>
 WATSONX_SERVICE_URL=https://us-south.ml.cloud.ibm.com
+
+# Auth (required)
+NEXTAUTH_SECRET=<run: openssl rand -base64 32>
+NEXTAUTH_URL=http://localhost:3000
+
+# OAuth (optional — leave blank to disable those providers)
+GOOGLE_CLIENT_ID=<your google client id>
+GOOGLE_CLIENT_SECRET=<your google client secret>
+GITHUB_CLIENT_ID=<your github client id>
+GITHUB_CLIENT_SECRET=<your github client secret>
 ```
 
 ### 2. Start infrastructure

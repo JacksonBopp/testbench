@@ -1,15 +1,19 @@
 import { eq, count } from 'drizzle-orm'
+import Link from 'next/link'
+import { LogIn } from 'lucide-react'
 import { db } from '@/db'
 import { alerts } from '@/db/schema'
+import { auth } from '@/auth'
 import NavLinks from '@/components/nav-links'
 import HardwareStatus from '@/components/hardware-status'
 import EdwardChat from '@/components/edward-chat'
+import UserMenu from '@/components/user-menu'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [{ value: alertCount }] = await db
-    .select({ value: count() })
-    .from(alerts)
-    .where(eq(alerts.acknowledged, false))
+  const [{ value: alertCount }, session] = await Promise.all([
+    db.select({ value: count() }).from(alerts).where(eq(alerts.acknowledged, false)).then(r => r[0]),
+    auth(),
+  ])
 
   return (
     <div className="flex h-full bg-zinc-50">
@@ -41,6 +45,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* hardware status */}
         <div className="px-4 py-4 border-t border-zinc-800">
           <HardwareStatus />
+        </div>
+
+        {/* user */}
+        <div className="px-4 py-3 border-t border-zinc-800">
+          {session?.user ? (
+            <UserMenu
+              name={session.user.name}
+              email={session.user.email}
+              image={session.user.image}
+            />
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <LogIn size={14} />
+              Sign In
+            </Link>
+          )}
         </div>
       </aside>
 

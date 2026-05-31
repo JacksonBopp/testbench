@@ -9,8 +9,10 @@ import {
   boolean,
   jsonb,
   index,
+  primaryKey,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import type { AdapterAccountType } from 'next-auth/adapters'
 
 export const runStatus = pgEnum('run_status', ['pending', 'running', 'passed', 'failed', 'error'])
 export const stepStatus = pgEnum('step_status', ['passed', 'failed', 'skipped'])
@@ -86,6 +88,50 @@ export const thresholds = pgTable('thresholds', {
   level: alertLevel('level').notNull(),
   enabled: boolean('enabled').default(true).notNull(),
 })
+
+// Auth.js tables
+export const users = pgTable('user', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name'),
+  email: text('email').unique(),
+  emailVerified: timestamp('emailVerified', { mode: 'date' }),
+  image: text('image'),
+  password: text('password'),
+})
+
+export const accounts = pgTable(
+  'account',
+  {
+    userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').$type<AdapterAccountType>().notNull(),
+    provider: text('provider').notNull(),
+    providerAccountId: text('providerAccountId').notNull(),
+    refresh_token: text('refresh_token'),
+    access_token: text('access_token'),
+    expires_at: integer('expires_at'),
+    token_type: text('token_type'),
+    scope: text('scope'),
+    id_token: text('id_token'),
+    session_state: text('session_state'),
+  },
+  (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
+)
+
+export const sessions = pgTable('session', {
+  sessionToken: text('sessionToken').primaryKey(),
+  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires: timestamp('expires', { mode: 'date' }).notNull(),
+})
+
+export const verificationTokens = pgTable(
+  'verificationToken',
+  {
+    identifier: text('identifier').notNull(),
+    token: text('token').notNull(),
+    expires: timestamp('expires', { mode: 'date' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.identifier, t.token] })],
+)
 
 export const testRunsRelations = relations(testRuns, ({ many }) => ({
   steps: many(testSteps),

@@ -22,6 +22,13 @@
       "when": 1779393971309,
       "tag": "0002_lethal_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780229729820,
+      "tag": "0003_perfect_the_watchers",
+      "breakpoints": true
     }
   ]
 }
