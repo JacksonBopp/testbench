@@ -55,7 +55,7 @@ export default async function AnalysisPage() {
           <div className="flex flex-col gap-4">
             {analyzed.map((run) => (
               <div key={run.id} className="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-2.5">
                     <span className="font-mono text-xs text-zinc-400 bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5">
                       {run.id.slice(0, 8)}
@@ -65,7 +65,7 @@ export default async function AnalysisPage() {
                       <span className="text-xs text-zinc-400">{run.hardwareId}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     {run.analyzedAt && (
                       <span className="text-xs text-zinc-400">
                         analyzed {run.analyzedAt.toLocaleString()}

@@ -132,12 +132,14 @@ client.on('message', async (topic, payload) => {
 })
 
 // ── startup + refresh loop ─────────────────────────────────────────────────
-await refreshThresholds()
-setInterval(refreshThresholds, 60_000)
+void (async () => {
+  await refreshThresholds()
+  setInterval(refreshThresholds, 60_000)
 
-process.on('SIGINT', async () => {
-  console.log('\n[subscriber] shutting down…')
-  client.end()
-  await pg.end()
-  process.exit(0)
-})
+  process.on('SIGINT', async () => {
+    console.log('\n[subscriber] shutting down…')
+    client.end()
+    await pg.end()
+    process.exit(0)
+  })
+})()

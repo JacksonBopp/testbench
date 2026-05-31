@@ -26,7 +26,7 @@ def now_iso():
 
 def publish(client, topic, payload):
     client.publish(f"testbench/{topic}", json.dumps(payload), qos=1)
-    print(f"  → testbench/{topic}: {json.dumps(payload)[:80]}")
+    print(f"  -> testbench/{topic}: {json.dumps(payload)[:80]}")
 
 def run_scenario(client, scenario: str, run_id: str | None = None):
     run_id = run_id or str(uuid4())

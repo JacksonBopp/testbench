@@ -32,7 +32,7 @@ export default async function MetricsPage() {
       </div>
 
       {history.length >= 2 && (
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 
           <div className="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -84,6 +84,8 @@ export default async function MetricsPage() {
             <Activity size={14} className="text-zinc-400" />
             <h2 className="text-sm font-semibold text-zinc-800">Recent Readings</h2>
           </div>
+          <div className="overflow-x-auto">
+          <div className="min-w-[440px]">
           <div className="grid grid-cols-5 px-5 py-2.5 bg-zinc-50 border-b border-zinc-100 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
             <span>Time</span>
             <span>Temp (°C)</span>
@@ -111,6 +113,8 @@ export default async function MetricsPage() {
               </span>
             </div>
           ))}
+          </div>
+          </div>
         </div>
       )}
 

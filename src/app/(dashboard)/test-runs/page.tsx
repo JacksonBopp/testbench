@@ -42,39 +42,41 @@ export default async function TestRunsPage() {
             <p className="text-xs text-zinc-300 mt-1">Click &quot;Run Test&quot; to trigger your first sequence.</p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-6 px-5 py-2.5 bg-zinc-50 border-b border-zinc-100 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-              <span>Run ID</span>
-              <span className="col-span-2">Started</span>
-              <span>Duration</span>
-              <span>Status</span>
-              <span>Firmware</span>
-            </div>
-            {runs.map((run) => (
-              <Link
-                key={run.id}
-                href={`/test-runs/${run.id}`}
-                className="grid grid-cols-6 px-5 py-3.5 border-b border-zinc-50 last:border-0 text-sm items-center hover:bg-zinc-50/80 transition-colors group"
-              >
-                <span className="font-mono text-xs text-zinc-400">{run.id.slice(0, 8)}</span>
-                <span className="col-span-2 text-zinc-600 text-xs">{run.startedAt.toLocaleString()}</span>
-                <span className="text-xs text-zinc-400">
-                  {duration(run.startedAt, run.finishedAt) ?? (
-                    <span className="text-zinc-300">—</span>
-                  )}
-                </span>
-                <span>
-                  <StatusBadge status={run.status} dot size="xs" />
-                </span>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-zinc-400">
-                    {run.firmwareVersion ? run.firmwareVersion.slice(0, 7) : <span className="text-zinc-300">—</span>}
+          <div className="overflow-x-auto">
+            <div className="min-w-[520px]">
+              <div className="grid grid-cols-6 px-5 py-2.5 bg-zinc-50 border-b border-zinc-100 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <span>Run ID</span>
+                <span className="col-span-2">Started</span>
+                <span>Duration</span>
+                <span>Status</span>
+                <span>Firmware</span>
+              </div>
+              {runs.map((run) => (
+                <Link
+                  key={run.id}
+                  href={`/test-runs/${run.id}`}
+                  className="grid grid-cols-6 px-5 py-3.5 border-b border-zinc-50 last:border-0 text-sm items-center hover:bg-zinc-50/80 transition-colors group"
+                >
+                  <span className="font-mono text-xs text-zinc-400">{run.id.slice(0, 8)}</span>
+                  <span className="col-span-2 text-zinc-600 text-xs">{run.startedAt.toLocaleString()}</span>
+                  <span className="text-xs text-zinc-400">
+                    {duration(run.startedAt, run.finishedAt) ?? (
+                      <span className="text-zinc-300">—</span>
+                    )}
                   </span>
-                  <ArrowRight size={12} className="text-zinc-200 group-hover:text-zinc-400 transition-colors" />
-                </div>
-              </Link>
-            ))}
-          </>
+                  <span>
+                    <StatusBadge status={run.status} dot size="xs" />
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs text-zinc-400">
+                      {run.firmwareVersion ? run.firmwareVersion.slice(0, 7) : <span className="text-zinc-300">—</span>}
+                    </span>
+                    <ArrowRight size={12} className="text-zinc-200 group-hover:text-zinc-400 transition-colors" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -42,7 +42,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
@@ -113,10 +113,10 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* recent runs */}
-        <div className="col-span-2 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+        <div className="lg:col-span-2 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-800">Recent Test Runs</h2>
             <Link href="/test-runs" className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-700 transition-colors">

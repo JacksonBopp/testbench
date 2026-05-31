@@ -6,7 +6,7 @@ import { testRuns, testSteps } from '@/db/schema'
 import AnalyzeButton from '@/components/analyze-button'
 import RunPoller from '@/components/run-poller'
 import StatusBadge from '@/components/ui/status-badge'
-import { ChevronLeft, Clock, CheckCircle2, XCircle, Layers, Cpu } from 'lucide-react'
+import { ChevronLeft, Clock, CheckCircle2, XCircle, Layers, Cpu, FileText } from 'lucide-react'
 
 function duration(start: Date, end: Date | null) {
   if (!end) return '—'
@@ -73,13 +73,24 @@ export default async function TestRunDetailPage({
             )}
           </p>
         </div>
-        {run.status !== 'pending' && run.status !== 'running' && (
-          <AnalyzeButton runId={run.id} savedResult={run.analysisResult ?? null} />
-        )}
+        <div className="flex items-center gap-2">
+          {run.status !== 'pending' && run.status !== 'running' && (
+            <AnalyzeButton runId={run.id} savedResult={run.analysisResult ?? null} />
+          )}
+          <Link
+            href={`/report/${run.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+          >
+            <FileText size={13} />
+            Report
+          </Link>
+        </div>
       </div>
 
       {/* stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration</p>

@@ -8,44 +8,99 @@ on:
         default: '120'
         required: false
 
-  # Uncomment once TESTBENCH_URL secret is set and testbench is deployed:
-  # push:
-  #   branches: [main, master]
-  #   paths: [firmware/**]
-  # pull_request:
-  #   paths: [firmware/**]
+  push:
+    branches: [main, master]
+    paths: ['firmware/**', 'pi/**', 'scripts/**', 'src/**']
+  pull_request:
+    branches: [main, master]
+    paths: ['firmware/**', 'pi/**', 'scripts/**', 'src/**']
 
+# ── Job 1: self-contained simulation (always runs, no secrets needed) ─────────
 jobs:
-  validate:
-    name: Run hardware test suite
+  simulate:
+    name: Simulated hardware test
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: testbench
+          POSTGRES_PASSWORD: testbench
+          POSTGRES_DB: testbench
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run hardware validation
-        env:
-          TESTBENCH_URL: ${{ secrets.TESTBENCH_URL }}
-        run: |
-          if [ -z "$TESTBENCH_URL" ]; then
-            echo "::notice::TESTBENCH_URL secret not set — skipping hardware validation."
-            echo "Add TESTBENCH_URL in Settings > Secrets and variables > Actions."
-            exit 0
-          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-          TIMEOUT_MS=$(( ${{ inputs.timeout || 120 }} * 1000 ))
-          echo "Triggering testbench run for firmware ${{ github.sha }}"
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Start Mosquitto broker
+        run: |
+          docker run -d --name mosquitto -p 1883:1883 \
+            -v ${{ github.workspace }}/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro \
+            eclipse-mosquitto:2
+          sleep 2
+
+      - name: Write CI environment
+        run: |
+          cat > .env.local << 'EOF'
+          DATABASE_URL=postgres://testbench:testbench@localhost:5432/testbench
+          MQTT_URL=mqtt://localhost:1883
+          WATSONX_API_KEY=unused-in-ci
+          WATSONX_PROJECT_ID=unused-in-ci
+          WATSONX_SERVICE_URL=https://us-south.ml.cloud.ibm.com
+          EOF
+
+      - name: Run database migrations
+        run: npm run db:migrate
+
+      - name: Start MQTT subscriber
+        run: npm run subscriber > /tmp/subscriber.log 2>&1 &
+
+      - name: Start Next.js dev server
+        run: npm run dev > /tmp/nextjs.log 2>&1 &
+
+      - name: Wait for Next.js to be ready
+        run: npx wait-on http://localhost:3000/api/test-runs --timeout 60000
+
+      - name: Install Python dependencies
+        run: pip install paho-mqtt
+
+      - name: Start hardware simulator
+        run: python pi/bridge-sim.py --listen --scenario normal > /tmp/sim.log 2>&1 &
+
+      - name: Wait for simulator to connect
+        run: sleep 3
+
+      - name: Run test suite and wait for result
+        id: run
+        run: |
+          TIMEOUT=${{ inputs.timeout || 120 }}
+          echo "Triggering test for ${{ github.sha }}"
 
           RESULT=$(curl -sf \
-            --max-time $(( ${{ inputs.timeout || 120 }} + 10 )) \
-            -X POST "${TESTBENCH_URL}/api/webhook/run" \
+            --max-time $(( TIMEOUT + 15 )) \
+            -X POST http://localhost:3000/api/webhook/run \
             -H "Content-Type: application/json" \
             -d "{
               \"firmwareVersion\": \"${{ github.sha }}\",
-              \"hardwareId\": \"msp430-01\",
-              \"notes\": \"CI: ${{ github.ref }}\",
-              \"timeout\": ${TIMEOUT_MS}
+              \"hardwareId\": \"msp430-sim\",
+              \"notes\": \"CI: ${{ github.ref_name }}\",
+              \"timeout\": $(( TIMEOUT * 1000 ))
             }")
 
           echo "$RESULT" | jq .
@@ -55,10 +110,75 @@ jobs:
           FAILED=$(echo "$RESULT" | jq -r '.failed // 0')
           RUN_ID=$(echo "$RESULT" | jq -r '.runId')
 
-          echo "Run: $RUN_ID | Status: $STATUS | Passed: $PASSED | Failed: $FAILED"
+          echo "run_id=$RUN_ID"   >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS"   >> "$GITHUB_OUTPUT"
+          echo "passed=$PASSED"   >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED"   >> "$GITHUB_OUTPUT"
+
+          echo "Run $RUN_ID | $STATUS | passed=$PASSED failed=$FAILED"
 
           if [ "$STATUS" = "timeout" ]; then
-            echo "::error::Hardware test timed out — is the device connected and subscriber running?"
+            echo "::error::Test timed out after ${TIMEOUT}s"
+            exit 1
+          fi
+
+          if [ "$FAILED" -gt "0" ]; then
+            echo "::error::$FAILED step(s) failed — run $RUN_ID"
+            echo "$RESULT" | jq '.steps[] | select(.status == "failed")'
+            exit 1
+          fi
+
+          echo "::notice::All $PASSED steps passed for ${{ github.sha }}"
+
+      - name: Upload logs on failure
+        if: failure()
+        run: |
+          echo "=== subscriber ===" && cat /tmp/subscriber.log || true
+          echo "=== simulator ===" && cat /tmp/sim.log || true
+          echo "=== nextjs ===" && tail -100 /tmp/nextjs.log || true
+
+# ── Job 2: real hardware (requires TESTBENCH_URL secret + deployed app) ───────
+  hardware:
+    name: Real hardware test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Run hardware validation
+        env:
+          TESTBENCH_URL: ${{ secrets.TESTBENCH_URL }}
+        run: |
+          if [ -z "$TESTBENCH_URL" ]; then
+            echo "::notice::TESTBENCH_URL not set — skipping real hardware test."
+            echo "Set the secret in Settings → Secrets and variables → Actions."
+            exit 0
+          fi
+
+          TIMEOUT=${{ inputs.timeout || 120 }}
+          echo "Triggering real hardware run for ${{ github.sha }}"
+
+          RESULT=$(curl -sf \
+            --max-time $(( TIMEOUT + 15 )) \
+            -X POST "${TESTBENCH_URL}/api/webhook/run" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"firmwareVersion\": \"${{ github.sha }}\",
+              \"hardwareId\": \"msp430-01\",
+              \"notes\": \"CI: ${{ github.ref_name }}\",
+              \"timeout\": $(( TIMEOUT * 1000 ))
+            }")
+
+          echo "$RESULT" | jq .
+
+          STATUS=$(echo "$RESULT" | jq -r '.status')
+          PASSED=$(echo "$RESULT" | jq -r '.passed // 0')
+          FAILED=$(echo "$RESULT" | jq -r '.failed // 0')
+          RUN_ID=$(echo "$RESULT" | jq -r '.runId')
+
+          echo "Run $RUN_ID | $STATUS | passed=$PASSED failed=$FAILED"
+
+          if [ "$STATUS" = "timeout" ]; then
+            echo "::error::Hardware test timed out — is the device connected?"
             exit 1
           fi
 
