@@ -1,6 +1,6 @@
 # testbench
 
-Hardware test automation platform — trigger test sequences on an MSP430FR2355 LaunchPad via a Raspberry Pi Zero 2 W, stream live metrics over MQTT, and analyze failures with IBM watsonx.ai.
+Hardware test automation platform for the MSP430FR2355 LaunchPad. Streams live telemetry via a Raspberry Pi Zero 2 W over MQTT to a Next.js dashboard with AI failure analysis.
 
 ## Stack
 
@@ -127,7 +127,7 @@ Open `firmware/main.c` in Code Composer Studio (or build with `msp430-elf-gcc`).
 
 ## Edward — AI Chat Assistant
 
-A floating chat panel (bottom-right corner of the dashboard) powered by **IBM watsonx.ai (Granite 3.8B)**. Edward is a dry-witted hardware QA assistant with context awareness of the testbench platform — ask him about failing steps, unusual metrics, UART wiring, firmware behavior, or anything embedded-systems related.
+A floating chat panel (bottom-right corner of the dashboard) powered by **IBM watsonx.ai (Granite 3.8B)**. Edward is a dry-witted hardware QA assistant with context about the testbench platform. Ask him about failing steps, unusual metrics, UART wiring, firmware behavior, or anything embedded-systems related.
 
 Edward was originally built as a desktop AI assistant for the IBM Bob hackathon and has been adapted here as a browser-based troubleshooting assistant.
 
