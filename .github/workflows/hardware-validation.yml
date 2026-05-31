@@ -63,6 +63,8 @@ jobs:
           WATSONX_API_KEY=unused-in-ci
           WATSONX_PROJECT_ID=unused-in-ci
           WATSONX_SERVICE_URL=https://us-south.ml.cloud.ibm.com
+          NEXTAUTH_SECRET=ci-only-secret-not-for-production
+          NEXTAUTH_URL=http://localhost:3000
           EOF
 
       - name: Run database migrations
