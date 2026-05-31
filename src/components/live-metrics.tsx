@@ -77,7 +77,7 @@ export default function LiveMetrics() {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="rounded-lg border border-zinc-200 bg-white p-5">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Temperature</p>
           <p className={`mt-2 text-3xl font-semibold ${snap.temperature === null ? 'text-zinc-300' : 'text-zinc-900'}`}>
@@ -112,7 +112,7 @@ export default function LiveMetrics() {
             Connect hardware to begin streaming metrics.
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-px bg-zinc-100 overflow-hidden rounded-b-lg">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-100 overflow-hidden rounded-b-lg">
             {gpio.map(([pin, high]) => (
               <div key={pin} className="bg-white px-4 py-3 flex items-center justify-between">
                 <span className="text-xs font-mono text-zinc-600">{pin}</span>

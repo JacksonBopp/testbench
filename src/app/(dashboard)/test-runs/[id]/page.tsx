@@ -55,7 +55,7 @@ export default async function TestRunDetailPage({
       <RunPoller status={run.status} />
 
       {/* header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold text-zinc-900 tracking-tight font-mono">{run.id.slice(0, 8)}</h1>
@@ -73,21 +73,21 @@ export default async function TestRunDetailPage({
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {run.status !== 'pending' && run.status !== 'running' && (
-            <AnalyzeButton runId={run.id} savedResult={run.analysisResult ?? null} />
-          )}
-          <Link
-            href={`/report/${run.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
-          >
-            <FileText size={13} />
-            Report
-          </Link>
-        </div>
+        <Link
+          href={`/report/${run.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm"
+        >
+          <FileText size={13} />
+          Report
+        </Link>
       </div>
+
+      {/* analysis — full width, above stat cards */}
+      {run.status !== 'pending' && run.status !== 'running' && (
+        <AnalyzeButton runId={run.id} savedResult={run.analysisResult ?? null} />
+      )}
 
       {/* stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

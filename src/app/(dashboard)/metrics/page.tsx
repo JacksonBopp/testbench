@@ -32,7 +32,7 @@ export default async function MetricsPage() {
       </div>
 
       {history.length >= 2 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
 
           <div className="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
