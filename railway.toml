@@ -2,7 +2,5 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npm start"
-healthcheckPath = "/api/test-runs"
-healthcheckTimeout = 30
+startCommand = "npm run db:migrate && npm start"
 restartPolicyType = "on_failure"
