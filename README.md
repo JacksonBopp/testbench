@@ -1,5 +1,7 @@
 # testbench
 
+**Live:** [testbench.up.railway.app](https://testbench.up.railway.app)
+
 Hardware-agnostic test automation platform. Streams live telemetry from any UART-capable device — through a lightweight bridge host over MQTT — to a Next.js dashboard with AI failure analysis.
 
 Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-support) drops in: STM32, ESP32, AVR, RP2040, MSP430, and more. The repo ships a reference MSP430FR2355 firmware and a pure-software simulator so you can run the whole pipeline end-to-end with no hardware at all.
