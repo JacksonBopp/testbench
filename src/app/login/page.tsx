@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 type Mode = 'signin' | 'register'
 
@@ -120,19 +119,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4">
             <button
               onClick={() => switchMode(mode === 'signin' ? 'register' : 'signin')}
               className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
             >
               {mode === 'signin' ? 'Create account' : 'Sign in instead'}
             </button>
-            <Link
-              href="/dashboard"
-              className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
-            >
-              Continue as guest
-            </Link>
           </div>
         </div>
       </div>
