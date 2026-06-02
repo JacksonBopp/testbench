@@ -63,6 +63,8 @@ const client = mqtt.connect(process.env.MQTT_URL ?? 'mqtt://localhost:1883', {
   clientId: 'testbench-subscriber',
   clean: true,
   reconnectPeriod: 3000,
+  username: process.env.MQTT_USERNAME,
+  password: process.env.MQTT_PASSWORD,
 })
 
 client.on('connect', () => {

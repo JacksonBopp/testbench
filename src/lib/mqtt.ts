@@ -11,6 +11,8 @@ export function getMqttClient(): MqttClient {
     clientId: `testbench-server-${Math.random().toString(16).slice(2, 8)}`,
     clean: true,
     reconnectPeriod: 2000,
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
   })
 
   client.on('error', (err) => console.error('[mqtt]', err.message))

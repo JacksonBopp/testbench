@@ -43,11 +43,14 @@ import paho.mqtt.client as mqtt
 import serial
 
 # ── config ─────────────────────────────────────────────────────────────────────
-SERIAL_PORT  = os.environ.get("SERIAL_PORT",  "/dev/ttyS0")
+SERIAL_PORT  = os.environ.get("SERIAL_PORT",   "/dev/ttyS0")
 BAUD_RATE    = int(os.environ.get("BAUD_RATE", "9600"))
-BROKER_HOST  = os.environ.get("MQTT_HOST",    "192.168.1.100")  # dev machine IP
+BROKER_HOST  = os.environ.get("MQTT_HOST",    "192.168.1.100")
 BROKER_PORT  = int(os.environ.get("MQTT_PORT", "1883"))
-HARDWARE_ID  = os.environ.get("HARDWARE_ID",  "device-01")  # free-form label for this board
+MQTT_USER    = os.environ.get("JacksonBopp")
+MQTT_PASS    = os.environ.get("***REMOVED***")
+MQTT_TLS     = os.environ.get("MQTT_TLS", "").lower() in ("1", "true", "yes")
+HARDWARE_ID  = os.environ.get("HARDWARE_ID",  "device-01")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [bridge] %(message)s")
 log = logging.getLogger(__name__)
@@ -66,6 +69,10 @@ def uart_send(frame: dict):
 
 # ── MQTT ────────────────────────────────────────────────────────────────────────
 mqttc = mqtt.Client(client_id=f"pi-bridge-{HARDWARE_ID}", clean_session=True)
+if MQTT_USER:
+    mqttc.username_pw_set(MQTT_USER, MQTT_PASS)
+if MQTT_TLS:
+    mqttc.tls_set()
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
