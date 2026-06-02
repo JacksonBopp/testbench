@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 export default function SidebarLayout({
   sidebar,
@@ -10,7 +10,7 @@ export default function SidebarLayout({
   sidebar: React.ReactNode
   children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
 
   return (
     <div className="flex h-full bg-zinc-50">
@@ -27,27 +27,39 @@ export default function SidebarLayout({
         className={`
           fixed md:static inset-y-0 left-0 z-30
           w-64 shrink-0 flex flex-col bg-zinc-900 border-r border-zinc-800
-          transition-transform duration-200
-          ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          transition-all duration-200 ease-in-out
+          ${open ? 'translate-x-0' : '-translate-x-full md:-translate-x-64 md:w-0 md:min-w-0 md:overflow-hidden md:border-0'}
         `}
       >
+        {/* desktop collapse button */}
+        <button
+          onClick={() => setOpen(false)}
+          title="Collapse sidebar"
+          className="hidden md:flex absolute top-4 right-3 text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          <PanelLeftClose size={16} />
+        </button>
+
+        {/* mobile close button */}
         <button
           onClick={() => setOpen(false)}
           className="absolute top-3 right-3 md:hidden text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <X size={16} />
         </button>
+
         {sidebar}
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* mobile top bar */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
+        {/* top bar — hamburger on mobile, expand button on desktop when collapsed */}
+        <div className={`flex items-center gap-3 px-4 shrink-0 bg-zinc-900 border-b border-zinc-800 ${open ? 'py-3 md:hidden' : 'py-3'}`}>
           <button
             onClick={() => setOpen(true)}
             className="text-zinc-400 hover:text-zinc-200 transition-colors"
+            title="Open sidebar"
           >
-            <Menu size={20} />
+            {open ? <Menu size={20} /> : <PanelLeftOpen size={20} />}
           </button>
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-md bg-blue-500 flex items-center justify-center shrink-0">
