@@ -5,10 +5,17 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const client = getMqttClient()
 
+  let closed = false
+
   const stream = new ReadableStream({
     start(controller) {
       function send(data: unknown) {
-        controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+        if (closed) return
+        try {
+          controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+        } catch {
+          closed = true
+        }
       }
 
       function onMessage(topic: string, payload: Buffer) {
@@ -23,10 +30,18 @@ export async function GET() {
       client.subscribe('testbench/#')
       client.on('message', onMessage)
 
-      // heartbeat every 15s to keep connection alive
-      const hb = setInterval(() => controller.enqueue(': ping\n\n'), 15_000)
+      const hb = setInterval(() => {
+        if (closed) { clearInterval(hb); return }
+        try {
+          controller.enqueue(': ping\n\n')
+        } catch {
+          closed = true
+          clearInterval(hb)
+        }
+      }, 15_000)
 
       return () => {
+        closed = true
         clearInterval(hb)
         client.removeListener('message', onMessage)
         client.unsubscribe('testbench/#')
