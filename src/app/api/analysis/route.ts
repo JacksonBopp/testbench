@@ -48,6 +48,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ analysis })
   } catch (err) {
     console.error('watsonx error:', err)
-    return Response.json({ error: 'Analysis failed — check watsonx credentials' }, { status: 502 })
+    return Response.json({ error: 'Analysis failed. Check watsonx credentials.' }, { status: 502 })
   }
 }

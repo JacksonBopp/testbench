@@ -29,7 +29,7 @@ export default function AnalysisForm() {
         setResult(data.analysis)
       }
     } catch {
-      setError('Request failed — is the server running?')
+      setError('Request failed. Is the server running?')
     } finally {
       setLoading(false)
     }

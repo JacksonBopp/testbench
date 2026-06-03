@@ -32,7 +32,7 @@ export default async function SettingsPage() {
               <Bell size={28} className="mx-auto text-zinc-200 mb-2" />
               <p className="text-sm text-zinc-400">No thresholds configured.</p>
               <p className="text-xs text-zinc-300 mt-1">
-                Add one below — defaults (voltage &lt; 3.0V, temp &gt; 70°C) apply until you configure your own.
+                Add one below. Defaults (voltage &lt; 3.0V, temp &gt; 70°C) apply until you configure your own.
               </p>
             </div>
           ) : (

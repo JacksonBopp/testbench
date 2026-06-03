@@ -33,7 +33,7 @@ export default async function AlertsPage() {
           {active.length === 0 ? (
             <div className="px-5 py-12 text-center">
               <CheckCircle2 size={32} className="mx-auto text-emerald-300 mb-3" />
-              <p className="text-sm text-zinc-400">All clear — no active alerts.</p>
+              <p className="text-sm text-zinc-400">All clear. No active alerts.</p>
             </div>
           ) : (
             active.map((alert) => (
