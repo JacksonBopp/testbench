@@ -1,5 +1,6 @@
 import { eq, count } from 'drizzle-orm'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { LogIn } from 'lucide-react'
 import { db } from '@/db'
 import { alerts } from '@/db/schema'
@@ -15,6 +16,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     db.select({ value: count() }).from(alerts).where(eq(alerts.acknowledged, false)).then(r => r[0]),
     auth(),
   ])
+
+  if (!session) redirect('/login')
 
   const sidebar = (
     <>
