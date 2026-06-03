@@ -30,12 +30,12 @@ export default async function FirmwarePage() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Firmware Versions</h1>
-          <p className="mt-1 text-sm text-zinc-500">Track pass rates and regressions across firmware builds.</p>
+          <p className="mt-1 text-sm text-zinc-500">Pass rates by firmware version.</p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-16 text-center">
           <Cpu size={36} className="mx-auto text-zinc-200 mb-3" />
-          <p className="text-sm text-zinc-400">No runs with firmware version data yet.</p>
-          <p className="text-xs text-zinc-300 mt-1">Make sure your firmware reports its version in run frames.</p>
+          <p className="text-sm text-zinc-400">No firmware version data yet.</p>
+          <p className="text-xs text-zinc-300 mt-1">Run a test with a firmware version set to see it here.</p>
         </div>
       </div>
     )

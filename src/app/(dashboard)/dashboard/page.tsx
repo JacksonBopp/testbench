@@ -38,7 +38,7 @@ export default async function DashboardPage() {
       {/* header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-sm text-zinc-500">Hardware status, test results, and alerts at a glance.</p>
+        <p className="mt-1 text-sm text-zinc-500">Hardware status, recent runs, and active alerts.</p>
       </div>
 
       {/* stat cards */}
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
             <div className="px-5 py-12 text-center">
               <Clock size={32} className="mx-auto text-zinc-200 mb-3" />
               <p className="text-sm text-zinc-400">No test runs yet.</p>
-              <p className="text-xs text-zinc-300 mt-1">Connect hardware and trigger a test to begin.</p>
+              <p className="text-xs text-zinc-300 mt-1">Connect your hardware and run a test.</p>
             </div>
           ) : (
             <div>

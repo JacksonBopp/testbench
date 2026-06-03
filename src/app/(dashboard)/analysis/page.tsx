@@ -34,7 +34,7 @@ export default async function AnalysisPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">AI Analysis</h1>
         </div>
         <p className="mt-1 text-sm text-zinc-500 ml-9.5">
-          IBM watsonx.ai root cause summaries. Analyze any completed run from its detail page.
+          Root cause summaries from watsonx. Open any completed run to analyze it.
         </p>
       </div>
 
@@ -42,7 +42,7 @@ export default async function AnalysisPage() {
         <div className="rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-16 text-center">
           <Sparkles size={32} className="mx-auto text-zinc-200 mb-3" />
           <p className="text-sm text-zinc-400">No analyses yet.</p>
-          <p className="text-xs text-zinc-300 mt-1">Run a test and click &quot;Analyze with watsonx&quot; on the run detail page.</p>
+          <p className="text-xs text-zinc-300 mt-1">Open a completed run and click &quot;Analyze with watsonx&quot;.</p>
         </div>
       )}
 

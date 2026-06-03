@@ -121,8 +121,8 @@ export default async function MetricsPage() {
       {history.length === 0 && (
         <div className="rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-16 text-center">
           <Activity size={36} className="mx-auto text-zinc-200 mb-3" />
-          <p className="text-sm text-zinc-400">No metrics recorded yet.</p>
-          <p className="text-xs text-zinc-300 mt-1">Connect hardware and run a test to start collecting telemetry.</p>
+          <p className="text-sm text-zinc-400">No metrics yet.</p>
+          <p className="text-xs text-zinc-300 mt-1">Connect your hardware and run a test.</p>
         </div>
       )}
     </div>

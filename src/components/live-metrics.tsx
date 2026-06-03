@@ -70,7 +70,7 @@ export default function LiveMetrics() {
       <div className="flex items-center gap-2 mb-6">
         <span className={`inline-block w-2 h-2 rounded-full ${snap.connected ? 'bg-green-500' : 'bg-zinc-300'}`} />
         <span className="text-xs text-zinc-500">
-          {snap.connected ? 'Streaming' : 'Waiting for signal'}
+          {snap.connected ? 'Streaming' : 'Waiting for data'}
           {snap.lastSeen && (
             <span className="ml-2 text-zinc-400">· last update {snap.lastSeen.toLocaleTimeString()}</span>
           )}

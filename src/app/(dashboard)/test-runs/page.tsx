@@ -23,7 +23,7 @@ export default async function TestRunsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Test Runs</h1>
-          <p className="mt-1 text-sm text-zinc-500">Full history of automated hardware test sequences.</p>
+          <p className="mt-1 text-sm text-zinc-500">Every run logged, with steps, timing, and results.</p>
         </div>
         <RunTestButton />
       </div>
@@ -38,8 +38,8 @@ export default async function TestRunsPage() {
         {runs.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <Clock size={36} className="mx-auto text-zinc-200 mb-3" />
-            <p className="text-sm text-zinc-400">No test runs recorded yet.</p>
-            <p className="text-xs text-zinc-300 mt-1">Click &quot;Run Test&quot; to trigger your first sequence.</p>
+            <p className="text-sm text-zinc-400">No test runs yet.</p>
+            <p className="text-xs text-zinc-300 mt-1">Hit &quot;Run Test&quot; to get started.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
