@@ -2,7 +2,7 @@
 
 **Live:** [testbench.up.railway.app](https://testbench.up.railway.app)
 
-Hardware-agnostic test automation platform. Streams live telemetry from any UART-capable device — through a lightweight bridge host over MQTT — to a Next.js dashboard with AI failure analysis.
+Hardware-agnostic test automation platform. Streams live telemetry from any UART-capable device through a lightweight bridge host over MQTT to a Next.js dashboard with AI failure analysis.
 
 Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-support) drops in: STM32, ESP32, AVR, RP2040, MSP430, and more. The repo ships a reference MSP430FR2355 firmware and a pure-software simulator so you can run the whole pipeline end-to-end with no hardware at all.
 
@@ -14,17 +14,17 @@ Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-s
 | Styling | Tailwind CSS v4 |
 | Database | PostgreSQL 16 (Drizzle ORM) |
 | Realtime | MQTT (eclipse-mosquitto) |
-| AI — Analysis | IBM watsonx.ai — `ibm/granite-3-8b-instruct` |
-| AI — Chat | IBM watsonx.ai — `ibm/granite-3-8b-instruct` (Edward assistant) |
+| AI Analysis | IBM watsonx.ai (`ibm/granite-3-8b-instruct`) |
+| AI Chat | IBM watsonx.ai (`ibm/granite-3-8b-instruct`, Edward assistant) |
 | Hardware | Any UART device + a bridge host (reference: Raspberry Pi Zero 2 W + MSP430FR2355) |
 
 ## Architecture
 
 ```
-Device under test  (any MCU — emits JSON frames over UART)
+Device under test  (any MCU that emits JSON frames over UART)
   │  UART, newline-terminated JSON (default 9600 baud)
   ▼
-Bridge host  ──  pi/bridge.py   (reference: Raspberry Pi Zero 2 W; runs anywhere with a serial port)
+Bridge host  ──  pi/bridge.py   (reference: Raspberry Pi Zero 2 W, but runs anywhere with a serial port)
   │  network → MQTT publish
   ▼
 Mosquitto broker (Docker, port 1883)
@@ -39,7 +39,7 @@ Mosquitto broker (Docker, port 1883)
 
 - Docker Desktop
 - Node.js 20+
-- IBM watsonx.ai API key + project (Lite plan — free)
+- IBM watsonx.ai API key + project (Lite plan, free)
 
 ### 1. Environment
 
@@ -56,7 +56,7 @@ WATSONX_SERVICE_URL=https://us-south.ml.cloud.ibm.com
 NEXTAUTH_SECRET=<run: openssl rand -base64 32>
 NEXTAUTH_URL=http://localhost:3000
 
-# OAuth (optional — leave blank to disable those providers)
+# OAuth (optional, leave blank to disable those providers)
 GOOGLE_CLIENT_ID=<your google client id>
 GOOGLE_CLIENT_SECRET=<your google client secret>
 GITHUB_CLIENT_ID=<your github client id>
@@ -82,10 +82,10 @@ npm run db:migrate
 In two separate terminals:
 
 ```bash
-# Terminal 1 — Next.js
+# Terminal 1: Next.js
 npm run dev
 
-# Terminal 2 — MQTT → DB bridge
+# Terminal 2: MQTT to DB bridge
 npm run subscriber
 ```
 
@@ -105,7 +105,7 @@ Copy `pi/bridge.py` to the host, then point it at your device and broker:
 MQTT_HOST=<broker-ip> SERIAL_PORT=/dev/ttyS0 BAUD_RATE=9600 HARDWARE_ID=device-01 python3 bridge.py
 ```
 
-The bridge reads newline-terminated JSON frames from the device over UART and republishes them to the broker. It knows nothing about the chip — only the frame schema below.
+The bridge reads newline-terminated JSON frames from the device over UART and republishes them to the broker. It knows nothing about the chip, only the frame schema below.
 
 ## Hardware support
 
@@ -130,7 +130,7 @@ Notes:
 
 ## Reference firmware (MSP430FR2355)
 
-`firmware/main.c` is a complete, working example for the MSP430FR2355 LaunchPad. Open it in Code Composer Studio (or build with `msp430-elf-gcc`) and flash it. It emits 1 Hz JSON telemetry over UART (eUSCI_A1 — P4.2 TX, P4.3 RX) and implements the frame contract above. Use it as a template when porting to a different MCU — only the chip-specific peripheral code (UART, ADC, GPIO) changes; the JSON frames stay identical.
+`firmware/main.c` is a complete, working example for the MSP430FR2355 LaunchPad. Open it in Code Composer Studio (or build with `msp430-elf-gcc`) and flash it. It emits 1 Hz JSON telemetry over UART (eUSCI_A1, P4.2 TX / P4.3 RX) and implements the frame contract above. Use it as a template when porting to a different MCU. Only the chip-specific peripheral code (UART, ADC, GPIO) changes; the JSON frames stay identical.
 
 ## MQTT topics
 
@@ -160,10 +160,10 @@ Notes:
 | POST | `/api/analysis` | Run watsonx analysis on a failed run |
 | POST | `/api/chat` | Streaming chat with Edward (Gemini backend) |
 
-## Edward — AI Chat Assistant
+## Edward: AI Chat Assistant
 
 A floating chat panel (bottom-right corner of the dashboard) powered by **IBM watsonx.ai (Granite 3.8B)**. Edward is a dry-witted hardware QA assistant with context about the testbench platform. Ask him about failing steps, unusual metrics, UART wiring, firmware behavior, or anything embedded-systems related.
 
 Edward was originally built as a desktop AI assistant for the IBM Bob hackathon and has been adapted here as a browser-based troubleshooting assistant.
 
-Edward uses the same IBM watsonx.ai credentials as the analysis feature — no extra setup needed beyond the existing `WATSONX_*` env vars. Both Edward (live chat) and the post-run analysis reports run on `ibm/granite-3-8b-instruct`.
+Edward uses the same IBM watsonx.ai credentials as the analysis feature. No extra setup needed beyond the existing `WATSONX_*` env vars. Both Edward (live chat) and the post-run analysis reports run on `ibm/granite-3-8b-instruct`.
