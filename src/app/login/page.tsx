@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 
 type Mode = 'signin' | 'register'
 
@@ -13,11 +12,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   function switchMode(m: Mode) {
     setMode(m)
     setError(null)
+    setLoading(false)
     setName('')
     setEmail('')
     setPassword('')
@@ -49,8 +48,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
-    router.refresh()
+    window.location.href = '/dashboard'
   }
 
   return (
