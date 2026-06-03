@@ -23,7 +23,7 @@ export default async function MetricsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Live Metrics</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Real-time hardware telemetry streamed via MQTT: temperature, voltage, GPIO states.
+          Live readings from your hardware. Temperature, voltage, current, and GPIO states.
         </p>
       </div>
 
