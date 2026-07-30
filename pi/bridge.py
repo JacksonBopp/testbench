@@ -136,13 +136,16 @@ def handle(frame: dict):
         })
 
     elif t == "run_step":
+        # Devices report startedAt/finishedAt as their own uptime ("t+15000ms"),
+        # not wall-clock time — the bridge is the only side with a real clock,
+        # so it stamps these itself rather than forwarding the device's value.
         publish("run/step", {
             "runId":      frame["runId"],
             "sequence":   frame["sequence"],
             "name":       frame["name"],
             "status":     frame["status"],
-            "startedAt":  frame.get("startedAt", now_iso()),
-            "finishedAt": frame.get("finishedAt"),
+            "startedAt":  now_iso(),
+            "finishedAt": now_iso(),
             "message":    frame.get("message"),
         })
 
@@ -151,7 +154,7 @@ def handle(frame: dict):
             "runId":           frame["runId"],
             "status":          frame.get("status", "passed"),
             "firmwareVersion": frame.get("firmwareVersion"),
-            "finishedAt":      frame.get("finishedAt", now_iso()),
+            "finishedAt":      now_iso(),
         })
 
     elif t == "heartbeat":
