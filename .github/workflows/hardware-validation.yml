@@ -15,8 +15,34 @@ on:
     branches: [main, master]
     paths: ['firmware/**', 'pi/**', 'scripts/**', 'src/**']
 
-# ── Job 1: self-contained simulation (always runs, no secrets needed) ─────────
+# ── Job 0: lint, typecheck, unit tests — fast feedback, no services needed ────
 jobs:
+  lint-and-test:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+# ── Job 1: self-contained simulation (always runs, no secrets needed) ─────────
   simulate:
     name: Simulated hardware test
     runs-on: ubuntu-latest
