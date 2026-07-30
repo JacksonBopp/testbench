@@ -14,6 +14,8 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { eq } from 'drizzle-orm'
 import * as schema from '../src/db/schema'
+import { isKnownTopic, parseFrame, type MetricsPayload, type RunStatusPayload, type RunStepPayload } from '../src/lib/frames'
+import { evaluateThresholds, type ThresholdRule } from '../src/lib/thresholds'
 
 const pg = postgres(process.env.DATABASE_URL!)
 const db = drizzle(pg, { schema })
@@ -38,23 +40,16 @@ async function checkThresholds(
   runId: string | null,
   readings: { voltage?: number | null; temperature?: number | null; currentMa?: number | null },
 ) {
-  for (const t of cachedThresholds) {
-    const val = readings[t.metric as keyof typeof readings]
-    if (val === null || val === undefined) continue
+  const rules: ThresholdRule[] = cachedThresholds
+  const breaches = evaluateThresholds(rules, readings)
 
-    const triggered =
-      (t.condition === 'lt' && val < t.value) ||
-      (t.condition === 'gt' && val > t.value)
-
-    if (!triggered) continue
-
-    const direction = t.condition === 'lt' ? 'below' : 'above'
+  for (const breach of breaches) {
     await db.insert(schema.alerts).values({
       runId,
-      level:   t.level,
-      message: `${t.name}: ${t.metric} ${val.toFixed(3)} ${direction} threshold ${t.value}`,
+      level:   breach.rule.level,
+      message: breach.message,
     })
-    console.warn(`[subscriber] ALERT (${t.level}): ${t.name}`)
+    console.warn(`[subscriber] ALERT (${breach.rule.level}): ${breach.rule.name}`)
   }
 }
 
@@ -79,31 +74,38 @@ client.on('error',   (err) => console.error('[subscriber] error', err.message))
 client.on('offline', ()    => console.warn('[subscriber] offline — reconnecting…'))
 
 client.on('message', async (topic, payload) => {
-  let msg: Record<string, unknown>
+  let raw: unknown
   try {
-    msg = JSON.parse(payload.toString())
+    raw = JSON.parse(payload.toString())
   } catch {
     console.warn('[subscriber] non-JSON on', topic)
     return
   }
 
+  if (!isKnownTopic(topic)) {
+    console.warn('[subscriber] unrecognized topic', topic)
+    return
+  }
+
+  const parsed = parseFrame(topic, raw)
+  if (!parsed.ok) {
+    console.warn(`[subscriber] rejected malformed frame on ${topic}: ${parsed.error}`)
+    return
+  }
+
   try {
     if (topic === 'testbench/metrics') {
-      const voltage     = (msg.voltage     as number) ?? null
-      const temperature = (msg.temperature as number) ?? null
-      const currentMa   = (msg.currentMa   as number) ?? null
-      const runId       = (msg.runId       as string) ?? null
+      const { voltage = null, temperature = null, currentMa = null, runId = null, gpioStates = null } =
+        parsed.data as MetricsPayload
 
       await db.insert(schema.metrics).values({
         runId, temperature, voltage, currentMa,
-        gpioStates: (msg.gpioStates as Record<string, boolean>) ?? null,
+        gpioStates,
       })
       await checkThresholds(runId, { voltage, temperature, currentMa })
 
     } else if (topic === 'testbench/run/status') {
-      const { runId, status, finishedAt, firmwareVersion } = msg as {
-        runId: string; status: string; finishedAt?: string; firmwareVersion?: string
-      }
+      const { runId, status, finishedAt, firmwareVersion } = parsed.data as RunStatusPayload
       const updates: Record<string, unknown> = { status }
       if (finishedAt)       updates.finishedAt       = new Date(finishedAt)
       if (firmwareVersion)  updates.firmwareVersion  = firmwareVersion
@@ -111,13 +113,9 @@ client.on('message', async (topic, payload) => {
       console.log('[subscriber] run status →', status, runId)
 
     } else if (topic === 'testbench/run/step') {
-      const { runId, sequence, name, status, startedAt, finishedAt, message } = msg as {
-        runId: string; sequence: number; name: string; status: string
-        startedAt: string; finishedAt?: string; message?: string
-      }
+      const { runId, sequence, name, status, startedAt, finishedAt, message } = parsed.data as RunStepPayload
       await db.insert(schema.testSteps).values({
-        runId, sequence, name,
-        status:     status as 'passed' | 'failed' | 'skipped',
+        runId, sequence, name, status,
         startedAt:  new Date(startedAt),
         finishedAt: finishedAt ? new Date(finishedAt) : null,
         message:    message ?? null,
@@ -125,7 +123,7 @@ client.on('message', async (topic, payload) => {
       console.log('[subscriber] step saved:', name, '→', status)
 
     } else if (topic === 'testbench/heartbeat') {
-      const { hardwareId, firmwareVersion } = msg as { hardwareId?: string; firmwareVersion?: string }
+      const { hardwareId, firmwareVersion } = parsed.data as { hardwareId?: string; firmwareVersion?: string }
       console.log('[subscriber] heartbeat from', hardwareId, firmwareVersion ? `fw:${firmwareVersion}` : '')
     }
   } catch (err) {
