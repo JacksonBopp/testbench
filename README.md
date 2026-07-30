@@ -4,7 +4,7 @@
 
 Hardware-agnostic test automation platform. Streams live telemetry from any UART-capable device through a lightweight bridge host over MQTT to a Next.js dashboard with AI failure analysis.
 
-Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-support) drops in: STM32, ESP32, AVR, RP2040, MSP430, and more. The repo ships **two** reference firmwares (MSP430FR2355 and ESP32) proving that portability, plus a pure-software simulator so you can run the whole pipeline end-to-end with no hardware at all.
+Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-support) drops in: STM32, ESP32, AVR, RP2040, MSP430, and more. The repo ships **four** reference firmwares (MSP430FR2355, ESP32, STM32F103C8, RP2040) proving that portability across both hobbyist and production-grade chip families, plus a pure-software simulator so you can run the whole pipeline end-to-end with no hardware at all.
 
 ## Stack
 
@@ -16,8 +16,8 @@ Any microcontroller that speaks the simple [JSON-over-UART protocol](#hardware-s
 | Realtime | MQTT (eclipse-mosquitto) |
 | AI Analysis | IBM watsonx.ai (`ibm/granite-3-8b-instruct`) |
 | AI Chat | IBM watsonx.ai (`ibm/granite-3-8b-instruct`, Edward assistant) |
-| Hardware | Any UART device + a bridge host (references: Raspberry Pi Zero 2 W + MSP430FR2355, and ESP32) |
-| Validation | Zod (MQTT frame schemas), Vitest (unit tests) |
+| Hardware | Any UART device + a bridge host (references: Raspberry Pi Zero 2 W as bridge; MSP430FR2355, ESP32, STM32F103C8, RP2040 as devices) |
+| Validation | Zod (MQTT frame schemas), Vitest (unit + cross-platform fixture tests) |
 
 ## Architecture
 
@@ -149,12 +149,14 @@ Notes:
 
 ## Reference firmware
 
-Two independent implementations of the same frame contract, proving the protocol-first design actually holds across chip families — nothing in the bridge, backend, or dashboard changed between them:
+Four independent implementations of the same frame contract, deliberately spanning both hobbyist and industry-standard MCU families to prove the protocol-first design actually holds across chip vendors and toolchains — nothing in the bridge, backend, or dashboard changed between any of them:
 
-- **[`firmware/main.c`](firmware/main.c) — MSP430FR2355 LaunchPad.** Open it in Code Composer Studio (or build with `msp430-elf-gcc`) and flash it. Emits 1 Hz JSON telemetry over UART (eUSCI_A1, P4.2 TX / P4.3 RX).
+- **[`firmware/main.c`](firmware/main.c) — MSP430FR2355 LaunchPad.** Bare-metal, direct register access. Open it in Code Composer Studio (or build with `msp430-elf-gcc`) and flash it. Emits 1 Hz JSON telemetry over UART (eUSCI_A1, P4.2 TX / P4.3 RX).
 - **[`firmware/esp32/`](firmware/esp32/) — ESP32 (Arduino core, PlatformIO).** Emits the identical frames over its own hardware UART (Serial2, GPIO16/17). See [`firmware/esp32/README.md`](firmware/esp32/README.md) for wiring and build steps.
+- **[`firmware/stm32/`](firmware/stm32/) — STM32F103C8 "Blue Pill" (STM32Cube HAL, PlatformIO).** STM32 is the closest thing to an industry-standard MCU family for real production embedded work (medical, automotive, industrial control), so this port is written against ST's own HAL the way a production firmware team actually would. See [`firmware/stm32/README.md`](firmware/stm32/README.md).
+- **[`firmware/rp2040/`](firmware/rp2040/) — Raspberry Pi Pico (official pico-sdk, CMake).** Genuinely industry-adopted for cost-sensitive production hardware, and puts the same silicon vendor on both sides of the UART link, since the recommended bridge host is also a Raspberry Pi. See [`firmware/rp2040/README.md`](firmware/rp2040/README.md).
 
-Use either as a template when porting to a different MCU. Only the chip-specific peripheral code (UART, ADC, GPIO) changes; the JSON frames stay identical.
+Each targets a different real toolchain on purpose (bare registers, Arduino, vendor HAL, vendor SDK) rather than reusing one framework everywhere — that's what actually tests the "protocol-first" claim instead of just restating it. Use any of them as a template when porting to a different MCU: only the chip-specific peripheral code (UART, ADC, GPIO) changes; the JSON frames stay identical. [`src/lib/frames.crossplatform.test.ts`](src/lib/frames.crossplatform.test.ts) asserts the backend's Zod schemas accept each platform's exact frame shapes, gpio key naming included.
 
 ## MQTT topics
 
@@ -186,7 +188,7 @@ Use either as a template when porting to a different MCU. Only the chip-specific
 
 ## What I built
 
-Everything in this repo — the Next.js dashboard, the API routes, the Drizzle schema, the MQTT bridge and simulator, the reference MSP430 and ESP32 firmwares, the replay/stress-test tooling, and the CI workflow — is my own code, written and debugged by me. Nothing here is a scaffolded template or a generated app shell.
+Everything in this repo — the Next.js dashboard, the API routes, the Drizzle schema, the MQTT bridge and simulator, the four reference firmwares (MSP430, ESP32, STM32, RP2040), the replay/stress-test tooling, and the CI workflow — is my own code, written and debugged by me. Nothing here is a scaffolded template or a generated app shell.
 
 Dependencies I lean on rather than reinvent: Next.js/React for the app framework, Drizzle ORM for typed SQL, `mqtt.js` and `paho-mqtt` for the wire protocol, NextAuth for session/OAuth handling, and Eclipse Mosquitto as the broker. The two AI integrations — IBM watsonx.ai (Granite 3.8B) for post-run failure analysis, and Gemini for Edward's chat — are third-party model APIs I call with system context I built (test run history, telemetry, thresholds); I didn't write the models, but I designed what context they see and how their output is used.
 
@@ -201,12 +203,13 @@ Edward himself started as a desktop assistant I built for an IBM hackathon and w
 - **AI as a bolt-on analysis layer, not the core loop.** Failure analysis and chat both read from the same run/metrics/threshold tables the rest of the app already populates. If the watsonx or Gemini calls fail or are unconfigured, test runs, telemetry, and alerting keep working — the AI layer is additive, not load-bearing.
 - **Validate at the boundary, trust everywhere after.** `scripts/mqtt-subscriber.ts` runs every inbound MQTT payload through a Zod schema before it touches the database; a malformed frame from a misbehaving device gets logged and dropped instead of corrupting a row or crashing the process. Nothing downstream of that boundary re-validates the same data.
 - **Capture-and-replay over hand-written fixtures.** `pi/replay.py` records real MQTT sessions instead of me writing synthetic ones by hand, so a demo or regression case is exactly what a device actually said, timing included — at the cost of needing a live run to capture from at least once.
+- **The bridge owns wall-clock time; devices don't.** Every reference firmware reports `startedAt`/`finishedAt` as its own uptime (`"t+15000ms"`), since an MCU has no real-time clock worth trusting. `pi/bridge.py` stamps these fields with its own `now_iso()` on the way into MQTT rather than forwarding the device's value — a real bug I found and fixed while adding the STM32/RP2040 ports and testing against actual firmware output instead of only the simulator, which had always emitted proper timestamps and so never exposed it.
 
 ## Testing and reliability
 
 Three layers, each catching a different class of bug:
 
-1. **Unit tests (Vitest)** — `src/lib/frames.test.ts` and `src/lib/thresholds.test.ts` cover MQTT frame validation and alert-threshold evaluation in isolation: malformed payloads, boundary values, missing fields. Pure functions, no database or broker required. Run with `npm test`.
+1. **Unit tests (Vitest)** — `src/lib/frames.test.ts` and `src/lib/thresholds.test.ts` cover MQTT frame validation and alert-threshold evaluation in isolation: malformed payloads, boundary values, missing fields. `src/lib/frames.crossplatform.test.ts` additionally proves all four reference firmwares' exact frame shapes (including each platform's own gpio key naming) pass the same validation the backend runs in production. Pure functions, no database or broker required. Run with `npm test`.
 2. **Lint + typecheck** — `npm run lint` (ESLint, including React's render-purity rules) and `npm run typecheck` (`tsc --noEmit`) run on every push via the `lint-and-test` CI job, before anything spends time on containers.
 3. **End-to-end integration test** — an actual simulated hardware run on every push/PR touching `firmware/`, `pi/`, `scripts/`, or `src/` ([`.github/workflows/hardware-validation.yml`](.github/workflows/hardware-validation.yml)):
    1. Spins up real Postgres and Mosquitto containers.
@@ -221,7 +224,7 @@ For load rather than correctness, `scripts/stress-test.ts` (`npm run stress`) ru
 
 ## Future roadmap
 
-- A shared, versioned schema generator so `pi/bridge-sim.py`, `pi/bridge.py`, the firmware comments, and `src/lib/frames.ts` derive from one source of truth instead of four hand-kept ones.
+- A shared, versioned schema generator so `pi/bridge-sim.py`, `pi/bridge.py`, the four firmwares' frame comments, and `src/lib/frames.ts` derive from one source of truth instead of several hand-kept ones — the cross-platform fixture tests catch drift today, but don't prevent it.
 - API route test coverage (currently only the frame-validation and threshold layers are unit tested).
 - A WiFi-direct ESP32 variant that publishes straight to MQTT, as a second topology alongside the UART-bridge one.
 - Recorded demo video walking through a live run end to end.
