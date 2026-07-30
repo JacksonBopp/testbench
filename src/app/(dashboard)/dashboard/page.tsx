@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { desc, eq, count, and, gte } from 'drizzle-orm'
+import { desc, eq, gte, sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { testRuns, alerts } from '@/db/schema'
 import StatusBadge from '@/components/ui/status-badge'
@@ -14,12 +14,10 @@ function duration(start: Date, end: Date | null) {
 }
 
 export default async function DashboardPage() {
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-
   const [recentRuns, activeAlerts, weeklyRuns] = await Promise.all([
     db.select().from(testRuns).orderBy(desc(testRuns.startedAt)).limit(8),
     db.select().from(alerts).where(eq(alerts.acknowledged, false)).orderBy(desc(alerts.triggeredAt)).limit(3),
-    db.select().from(testRuns).where(gte(testRuns.startedAt, since)),
+    db.select().from(testRuns).where(gte(testRuns.startedAt, sql`now() - interval '7 days'`)),
   ])
 
   const lastRun   = recentRuns[0] ?? null
